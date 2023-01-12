@@ -1,0 +1,26 @@
+[package]
+name = "canvas-sync"
+version = "0.1.0"
+edition = "2021"
+authors = ["Nguyen Vu Khang <brew4k@gmail.com>"]
+description = """
+A barebones CLI tool that keeps local folders up-to-date with online folders on Canvas.
+"""
+homepage = "https://github.com/nguyenvukhang/canvas-sync"
+repository = "https://github.com/nguyenvukhang/canvas-sync"
+documentation = "https://github.com/nguyenvukhang/canvas-sync"
+keywords = ["sync"]
+categories = ["command-line-utilities"]
+license = "MIT"
+autotests = false
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11.13", features = ["json"] }
+tokio = { version = "1.23.0", features = ["full"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+dirs = "4.0.0"
+urlencoding = "2.1.2"

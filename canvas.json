@@ -1,0 +1,46 @@
+{
+  "token": "",
+  "base_path": "~/files/canvas-api",
+  "maps": [
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36732/files/folder/Lecture%20Notes",
+      "path": "MA2101/lec"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36732/files/folder/Tutorial%20Solutions",
+      "path": "MA2101/tut-sol"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36732/files/folder/Tutorials",
+      "path": "MA2101/tut"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36736/files/folder/Course%20notes",
+      "path": "MA2104/lec"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36736/files/folder/Tutorials",
+      "path": "MA2104/tut"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36741/files/folder/Lecture%20Notes",
+      "path": "MA2108/lec"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36741/files/folder/Homework",
+      "path": "MA2108/asm"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36741/files/folder/Tutorial%20solutions",
+      "path": "MA2108/tut-sol"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/36741/files/folder/Tutorials",
+      "path": "MA2108/tut"
+    },
+    {
+      "url": "https://canvas.nus.edu.sg/courses/39264/files/folder/Lecture",
+      "path": "HSI2012/lec"
+    }
+  ]
+}
