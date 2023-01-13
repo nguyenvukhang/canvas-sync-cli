@@ -45,6 +45,14 @@ There are three key components in your config:
    the local directory on your computer that you want to be synced
    with that folder online.
 
+### Specificying urls
+
+In each `{ url, path }` object, is the page that each url should point to:
+
+![canvas-demo](https://user-images.githubusercontent.com/10664455/212221239-1799d6fa-504e-4b69-9908-1235b6f4b2af.jpg)
+
+`path` will then track the contents of this folder.
+
 ## Usage
 
 Once you have specified your [configuration](#configuration), to make
