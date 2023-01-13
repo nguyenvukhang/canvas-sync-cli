@@ -24,10 +24,6 @@ impl Course {
         }
         res
     }
-
-    pub fn id(&self) -> u32 {
-        self.id
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -68,10 +64,6 @@ impl Folder {
 
     pub fn files_url(&self) -> &str {
         &self.files_url
-    }
-
-    pub fn full_name(&self) -> &str {
-        &self.full_name
     }
 }
 

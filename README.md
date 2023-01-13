@@ -45,7 +45,7 @@ There are three key components in your config:
    the local directory on your computer that you want to be synced
    with that folder online.
 
-### Specificying urls
+### Specifying urls
 
 In each `{ url, path }` object, is the page that each url should point to:
 
