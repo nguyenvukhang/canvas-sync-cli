@@ -50,7 +50,7 @@ impl Api {
     ) -> Result<Vec<CanvasFile>, Error> {
         let text = self.text(folder.files_url()).await?;
         let json = serde_json::from_str::<serde_json::Value>(&text)?;
-        Ok(CanvasFile::get(&json))
+        Ok(CanvasFile::get_vec(&json))
     }
 
     /// Get a list of courses of the current user.
@@ -66,7 +66,7 @@ impl Api {
         );
         let text = self.text(&url).await?;
         let json = serde_json::from_str::<serde_json::Value>(&text)?;
-        let vec = Folder::get(&json);
+        let vec = Folder::get_vec(&json);
         self.course_folder_cache.insert(course_id, vec.clone());
         Ok(vec)
     }
@@ -119,7 +119,7 @@ impl Api {
         let text =
             self.text("https://canvas.nus.edu.sg/api/v1/courses").await?;
         let json = serde_json::from_str::<serde_json::Value>(&text)?;
-        Ok(Course::get(&json))
+        Ok(Course::get_vec(&json))
     }
 
     /// Send a request to a file for easy reading.
