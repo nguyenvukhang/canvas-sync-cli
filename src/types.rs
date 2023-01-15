@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::path::PathBuf;
 
 /// Custom parser for an array of values stored within a
 /// `serde_json::Value`
@@ -66,6 +67,10 @@ impl Folder {
     pub fn files_url(&self) -> &str {
         &self.files_url
     }
+
+    pub fn full_name(&self) -> &str {
+        &self.full_name
+    }
 }
 
 // TODO: handle version updates
@@ -75,16 +80,22 @@ pub struct CanvasFile {
     #[allow(unused)]
     id: u32,
     filename: String,
+    full_name: PathBuf,
     download_url: String,
 }
 
 impl CanvasFile {
-    pub fn get_vec(json: &Value) -> Vec<Self> {
+    pub fn get_vec(json: &Value, parent_folder: &str) -> Vec<Self> {
         let required_keys = ["uuid"];
-        json.to_vec(&required_keys, |j| Self {
-            id: j["id"].as_u64().unwrap_or(0) as u32,
-            filename: json_string(&j["filename"]),
-            download_url: json_string(&j["url"]),
+        let parent = PathBuf::from(parent_folder);
+        json.to_vec(&required_keys, |j| {
+            let filename = json_string(&j["filename"]).replace("+", "_");
+            Self {
+                id: j["id"].as_u64().unwrap_or(0) as u32,
+                full_name: parent.join(&filename),
+                filename,
+                download_url: json_string(&j["url"]),
+            }
         })
     }
 
@@ -95,11 +106,17 @@ impl CanvasFile {
     pub fn filename(&self) -> &str {
         &self.filename
     }
+
+    pub fn full_name(&self) -> &PathBuf {
+        &self.full_name
+    }
 }
 
 /// Probably not needed
 #[allow(unused)]
+#[derive(Debug)]
 pub struct Course {
+    id: u32,
     name: String,
     course_code: String,
 }
@@ -108,8 +125,17 @@ impl Course {
     pub fn get_vec(json: &Value) -> Vec<Course> {
         let required_keys = ["uuid"];
         json.to_vec(&required_keys, |j| Course {
+            id: j["id"].as_u64().unwrap_or(0) as u32,
             name: json_string(&j["name"]),
             course_code: json_string(&j["course_code"]),
         })
+    }
+
+    pub fn id(&self) -> &u32 {
+        &self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }

@@ -4,17 +4,11 @@ use crate::types::{CanvasFile, Course, Folder};
 use reqwest::Response;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub struct Api {
     token: String,
     course_folder_cache: HashMap<u32, Vec<Folder>>,
-}
-
-const TMP_JSON_PATH: &str = "tmp.json";
-fn tmp_json() -> PathBuf {
-    PathBuf::from(TMP_JSON_PATH)
 }
 
 impl Api {
@@ -50,13 +44,14 @@ impl Api {
     ) -> Result<Vec<CanvasFile>, Error> {
         let text = self.text(folder.files_url()).await?;
         let json = serde_json::from_str::<serde_json::Value>(&text)?;
-        Ok(CanvasFile::get_vec(&json))
+        Ok(CanvasFile::get_vec(&json, folder.full_name()))
     }
 
-    /// Get a list of courses of the current user.
+    /// Get a list of folders within a course. This is needed to
+    /// obtain each folder's id
     pub async fn course_folders(
         &mut self,
-        course_id: u32,
+        course_id: &u32,
     ) -> Result<Vec<Folder>, Error> {
         if let Some(vec) = self.course_folder_cache.get(&course_id) {
             return Ok(vec.clone());
@@ -67,19 +62,18 @@ impl Api {
         let text = self.text(&url).await?;
         let json = serde_json::from_str::<serde_json::Value>(&text)?;
         let vec = Folder::get_vec(&json);
-        self.course_folder_cache.insert(course_id, vec.clone());
+        self.course_folder_cache.insert(*course_id, vec.clone());
         Ok(vec)
     }
 
     /// Uses the `url` as a download link and sends the data to the
     /// file at `local_path`. Will create a new filename if that file
     /// already exists.
-    pub async fn download<P: AsRef<Path>>(
+    pub async fn download(
         &self,
         url: &str,
-        local_path: P,
+        path: &PathBuf,
     ) -> Result<(), Error> {
-        let path = local_path.as_ref();
         if let Some(parent) = path.parent() {
             if !parent.as_os_str().is_empty() && !parent.is_dir() {
                 return Err(Error::DownloadNoParentDir(path.to_path_buf()));
@@ -104,7 +98,9 @@ impl Api {
             }
             false => path.to_path_buf(),
         };
-        let response = reqwest::get(url).await?;
+        let response = reqwest::get(url)
+            .await
+            .map_err(|e| Error::DownloadErr(url.to_string(), e))?;
         let mut target = File::create(path)?;
         let mut content = std::io::Cursor::new(response.bytes().await?);
         std::io::copy(&mut content, &mut target)?;
@@ -112,21 +108,10 @@ impl Api {
     }
 
     /// Get a list of courses of the current user.
-    /// Probably not required because course id will be part of the
-    /// url supplied in the user config.
-    #[allow(unused)]
     pub async fn list_courses(&self) -> Result<Vec<Course>, Error> {
         let text =
             self.text("https://canvas.nus.edu.sg/api/v1/courses").await?;
         let json = serde_json::from_str::<serde_json::Value>(&text)?;
         Ok(Course::get_vec(&json))
-    }
-
-    /// Send a request to a file for easy reading.
-    #[allow(unused)]
-    pub async fn send_to_file(&self, url: &str) -> Result<(), Error> {
-        let mut json_file = File::create(tmp_json())?;
-        let text = self.text(url).await?;
-        json_file.write_fmt(format_args!("{text}")).map_err(|v| v.into())
     }
 }

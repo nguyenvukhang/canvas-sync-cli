@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 pub enum Error {
     CanvasEnvNotFound,
     EmptyToken,
+    CourseHasNoName(u32),
+    CourseNotFound(u32),
     InvalidFilename(PathBuf),
     ReqwestErr(reqwest::Error),
     SerdeJsonErr(serde_json::Error),
@@ -12,6 +14,7 @@ pub enum Error {
     ConfigNotFound(PathBuf),
     DownloadNoParentDir(PathBuf),
     InvalidTrackingUrl(String),
+    DownloadErr(String, reqwest::Error),
 }
 
 fn path_to_string<P: AsRef<Path>>(path: P) -> String {
@@ -24,11 +27,24 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
         match self {
+            DownloadErr(url, err) => {
+                write!(f, "Failed to download from url {url}, {err}")
+            }
+            CourseHasNoName(id) => {
+                write!(f, "Course should have a name (course_id: {id})")
+            }
+            CourseNotFound(id) => {
+                write!(f, "No course found for course_id: {id}")
+            }
             CanvasEnvNotFound => write!(f, "{CANVAS_ENV_NOT_FOUND}"),
             EmptyToken => write!(f, "No token provided"),
             InvalidTrackingUrl(v) => write!(f, "Invalid url: {v}"),
             DownloadNoParentDir(v) => {
-                write!(f, "Download target `{}` has no parent.", path_to_string(v))
+                write!(
+                    f,
+                    "Download target `{}` has no parent.",
+                    path_to_string(v)
+                )
             }
             InvalidFilename(v) => {
                 write!(f, "Invalid filename: `{}`", path_to_string(v))

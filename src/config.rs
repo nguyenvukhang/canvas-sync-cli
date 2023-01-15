@@ -1,50 +1,129 @@
 use crate::error::Error;
+use crate::types::Course;
 use std::io::ErrorKind;
 
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::fs::File;
-use std::path::PathBuf;
-
-const DEFAULT_CONFIG_PATH: &str = "./canvas.json";
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ConfigMap {
-    course_id: Option<u32>,
-    folder_name: Option<String>,
+pub struct ConfigMapJson {
     url: String,
     path: String,
-    processed_path: Option<PathBuf>,
+}
+
+#[derive(Debug)]
+pub struct ConfigMap {
+    course_id: u32,
+    folder_name: String,
+    path: PathBuf,
+    course_name: Option<String>,
 }
 
 impl ConfigMap {
-    pub fn course_id(&self) -> Option<&u32> {
-        self.course_id.as_ref()
+    pub fn new<P: AsRef<Path>>(
+        url: String,
+        path: String,
+        base_path: &Option<P>,
+    ) -> Result<Self, Error> {
+        let (course_id, folder_name) = parse_url(&url)?;
+        let path = match base_path {
+            Some(v) => v.as_ref().join(&path),
+            None => replace_tilde(&path).unwrap_or(PathBuf::from(&path)),
+        };
+        // create the deepest directory, but not the parent.
+        if let Some(parent) = path.parent() {
+            if parent.is_dir() {
+                fs::create_dir_all(&path)?;
+            } else {
+                return Err(Error::DownloadNoParentDir(path.to_owned()));
+            }
+        }
+
+        Ok(Self { course_id, folder_name, path, course_name: None })
     }
 
-    pub fn folder_name(&self) -> Option<&String> {
-        self.folder_name.as_ref()
+    pub fn course_id(&self) -> &u32 {
+        &self.course_id
     }
 
-    pub fn local_path(&self) -> Option<&PathBuf> {
-        self.processed_path.as_ref()
+    pub fn course_name(&self) -> Option<&String> {
+        self.course_name.as_ref()
+    }
+
+    pub fn folder_name(&self) -> &str {
+        &self.folder_name
+    }
+
+    pub fn local_path(&self) -> &PathBuf {
+        &self.path
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Config {
+pub struct ConfigJson {
     base_path: Option<String>,
+    token: String,
+    maps: Vec<ConfigMapJson>,
+}
+
+#[derive(Debug)]
+pub struct Config {
     token: String,
     maps: Vec<ConfigMap>,
 }
 
 impl Config {
+    /// Tries to get config from the path supplied. If no path supplied,
+    /// then use the default path `./canvas.json`.
+    pub fn new(path: PathBuf) -> Result<Config, Error> {
+        let config_file = open_config(path)?;
+        let mut config_json =
+            serde_json::from_reader::<File, ConfigJson>(config_file)?;
+
+        // load token from env if not found in json
+        if config_json.token.is_empty() {
+            config_json.token = get_canvas_token()?;
+        }
+
+        let base_path = match &config_json.base_path {
+            Some(v) if v.is_empty() => None,
+            None => None,
+            Some(v) => Some(replace_tilde(&v).unwrap_or(PathBuf::from(v))),
+        };
+
+        let config_maps: Result<Vec<ConfigMap>, Error> = config_json
+            .maps
+            .into_iter()
+            .map(|m| ConfigMap::new(m.url, m.path, &base_path))
+            .collect();
+
+        Ok(Config { maps: config_maps?, token: config_json.token })
+    }
+
     pub fn token(&self) -> &str {
         &self.token
     }
 
     pub fn maps(&self) -> &Vec<ConfigMap> {
         &self.maps
+    }
+
+    /// Modifies `self.map` to include course names, and thens sorts
+    /// them by course name.
+    pub fn load_course_names(
+        &mut self,
+        user_courses: &Vec<Course>,
+    ) -> Result<(), Error> {
+        for m in &mut self.maps {
+            match user_courses.iter().find(|v| v.id().eq(&m.course_id)) {
+                Some(found) => m.course_name = Some(found.name().to_string()),
+                None => return Err(Error::CourseNotFound(m.course_id)),
+            }
+        }
+        self.maps.sort_by(|a, b| a.course_name().cmp(&b.course_name()));
+        Ok(())
     }
 }
 
@@ -88,45 +167,6 @@ fn replace_tilde(v: &str) -> Option<PathBuf> {
         }
     }
     None
-}
-
-/// Tries to get config from the path supplied. If no path supplied,
-/// then use the default path `./canvas.json`.
-pub fn get_config(path: Option<PathBuf>) -> Result<Config, Error> {
-    let path = path.unwrap_or(PathBuf::from(DEFAULT_CONFIG_PATH));
-    let config_file = open_config(path)?;
-    let mut config = serde_json::from_reader::<File, Config>(config_file)?;
-    if config.token.is_empty() {
-        config.token = get_canvas_token()?;
-    }
-    let base_path = match &config.base_path {
-        Some(v) if v.is_empty() => None,
-        None => None,
-        Some(v) => Some(replace_tilde(&v).unwrap_or(PathBuf::from(v))),
-    };
-    for m in config.maps.iter_mut() {
-        let (course_id, folder_name) = parse_url(&m.url)?;
-        m.course_id = Some(course_id);
-        m.folder_name = Some(folder_name);
-        let processed_path = match base_path.as_ref() {
-            Some(v) => v.join(&m.path),
-            None => replace_tilde(&m.path).unwrap_or(PathBuf::from(&m.path)),
-        };
-        // create the deepest directory, but not the parent.
-        if let Some(parent) = processed_path.parent() {
-            if parent.is_dir() {
-                fs::create_dir_all(&processed_path)?;
-            } else {
-                let path = processed_path.to_owned();
-                return Err(Error::DownloadNoParentDir(path));
-            }
-        }
-        m.processed_path = Some(processed_path)
-    }
-    // TODO: implement base config checks
-    // * validate path (don't create new directories)
-    // * validate url
-    Ok(config)
 }
 
 /// Reads the $CANVAS_TOKEN environment variable for the access token.
