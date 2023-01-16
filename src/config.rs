@@ -1,7 +1,7 @@
 use crate::api::Api;
 use crate::error::Error;
-use crate::string::replace_tilde;
 use crate::folder_map::{FolderMap, SFolderMap};
+use crate::string::replace_tilde;
 use crate::types::FileMap;
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
@@ -46,12 +46,6 @@ impl SConfig {
     /// Saves the current state of canvas-sync config
     pub fn save(&self) -> Result<(), Error> {
         confy::store(APP_NAME, Some(CONFIG_NAME), self).map_err(|e| e.into())
-    }
-
-    /// Gets the path to canvas-sync config
-    fn get_path(&self) -> Result<PathBuf, Error> {
-        confy::get_configuration_file_path(APP_NAME, Some(CONFIG_NAME))
-            .map_err(|e| e.into())
     }
 }
 /// }}}
@@ -211,6 +205,7 @@ impl Config {
 
         if !download {
             println!("{count} new files found. Skipping download.");
+            return Ok(());
         }
 
         println!("Downloading {count} files...");
