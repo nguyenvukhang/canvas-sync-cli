@@ -1,5 +1,6 @@
 use crate::api::Api;
 use crate::error::Error;
+use crate::string::replace_tilde;
 use crate::folder_map::{FolderMap, SFolderMap};
 use crate::types::FileMap;
 use colored::Colorize;
@@ -221,14 +222,4 @@ impl Config {
     pub async fn hello(&self) -> Result<(), Error> {
         self.api.hello().await
     }
-}
-
-/// Replace tilde with home.
-fn replace_tilde(v: &str) -> Option<PathBuf> {
-    if let Some(homeless) = v.strip_prefix("~/") {
-        if let Some(home) = dirs::home_dir() {
-            return Some(home.join(homeless));
-        }
-    }
-    None
 }

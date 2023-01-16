@@ -3,10 +3,58 @@
 A barebones CLI tool that keeps local folders up-to-date with online
 folders on Canvas.
 
+- [Install](#install)
 - [Configuration](#configuration)
 - [Usage](#usage)
 
+## Install
+
+Installing `canvas-sync` currently requires an installation of
+`cargo`. To install cargo, follow these [awesome
+instructions][cargo-install]. Once you have cargo installed, you can
+now install `canvas-sync` with
+
+```sh
+cargo install canvas-sync
+```
+
 ## Configuration
+
+Depending on your operating system, `canvas-sync` chooses a different
+default configuration file location. To find out this location, run
+
+```
+canvas-sync config
+```
+
+If it doesn't exist, then create it and fill it in with this template:
+
+```yaml
+---
+access_token: a_very_secret_value
+base_path: /path/to/your/base
+folders:
+  - url: "https://canvas.nus.edu.sg/courses/36732/files/folder/Lecture%20Notes"
+    path: MA2101/lec
+  - url: "https://canvas.nus.edu.sg/courses/36732/files/folder/Tutorial%20Solutions"
+    path: MA2101/tut-sol
+  - url: "https://canvas.nus.edu.sg/courses/36732/files/folder/Tutorials"
+    path: MA2101/tut
+  - url: "https://canvas.nus.edu.sg/courses/36736/files/folder/Course%20notes"
+    path: MA2104/lec
+  - url: "https://canvas.nus.edu.sg/courses/36736/files/folder/Tutorials"
+    path: MA2104/tut
+  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Lecture%20Notes"
+    path: MA2108/lec
+  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Homework"
+    path: MA2108/asm
+  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Tutorial%20solutions"
+    path: MA2108/tut-sol
+  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Tutorials"
+    path: MA2108/tut
+  - url: "https://canvas.nus.edu.sg/courses/39264/files/folder/Lecture"
+    path: HSI2012/lec
+```
 
 Make a `canvas.json` file and save it somewhere in your system.
 
@@ -61,3 +109,5 @@ your local folders update to date with canvas, execute the command
 ```sh
 canvas-sync /path/to/canvas.json
 ```
+
+[cargo-install]: https://doc.rust-lang.org/cargo/getting-started/installation.html

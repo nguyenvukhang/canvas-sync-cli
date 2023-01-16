@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::string::{parse_url, replace_tilde};
 use crate::types::FileMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -34,7 +35,12 @@ impl FolderMap {
         let (course_id, remote_path) = parse_url(&url)?;
         let local_dir = match base_path {
             Some(v) => v.join(&path),
-            None => PathBuf::from(&path),
+            None => match replace_tilde(&path) {
+                Some(v) => v,
+                None => {
+                    return Err(Error::InvalidFilename(PathBuf::from(path)))
+                }
+            },
         };
 
         match local_dir.parent() {
@@ -99,25 +105,4 @@ impl FolderMap {
     pub fn file_maps(&self) -> &Vec<FileMap> {
         &self.file_map
     }
-}
-
-/// Parses a url in a url-path config pair to extract course id and
-/// full folder name.
-///
-/// Example input:
-/// https://canvas.nus.edu.sg/courses/38518/files/folder/Lectures/Java%20Intro
-///
-/// Expected output:
-/// (38518, "Lectures/Java Intro")
-fn parse_url(url: &str) -> Result<(u32, String), Error> {
-    let err = || Error::InvalidTrackingUrl(url.to_string());
-    let url =
-        url.strip_prefix("https://canvas.nus.edu.sg/courses/").ok_or(err())?;
-    let (id, folder) = url.split_once("/").ok_or(err())?;
-    let id = id.parse::<u32>().map_err(|_| err())?;
-    let folder = folder.strip_prefix("files/folder/").ok_or(err())?;
-    if let Ok(decoded) = urlencoding::decode(folder) {
-        return Ok((id, decoded.to_string()));
-    }
-    Ok((id, folder.to_string()))
 }

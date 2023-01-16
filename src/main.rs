@@ -1,4 +1,5 @@
 mod api;
+mod string;
 mod folder_map;
 mod app;
 mod config;
