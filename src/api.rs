@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::folder_map::FolderMap;
 use crate::types::{CanvasFile, Course, Folder};
 use futures::prelude::*;
 use reqwest::Response;
@@ -43,18 +44,17 @@ impl Api {
         Ok(CanvasFile::get_vec(&json, folder.full_name()))
     }
 
-    /// Cached operation to get a list of folders within a course.
-    /// This is needed to obtain each folder's id.
+    /// Gets all courses' folder contents in one parallel async call.
     pub async fn all_course_folders(
         &self,
-        course_ids: &Vec<&u32>,
+        course_ids: &Vec<u32>,
     ) -> Result<HashMap<u32, Vec<Folder>>, Error> {
         let url = |id| {
             format!("https://canvas.nus.edu.sg/api/v1/courses/{id}/folders")
         };
         let handles = course_ids.into_iter().map(|id| async move {
             let text = self.text(&url(id)).await.and_then(|v| {
-                Ok((**id, serde_json::from_str::<serde_json::Value>(&v)?))
+                Ok((*id, serde_json::from_str::<serde_json::Value>(&v)?))
             });
             text
         });
@@ -69,6 +69,38 @@ impl Api {
         Ok(HashMap::from_iter(
             results.into_iter().collect::<Result<Vec<_>, Error>>()?,
         ))
+    }
+
+    pub async fn all_tracked_files(
+        &self,
+        all_folders: &HashMap<u32, Vec<Folder>>,
+        folder_maps: &Vec<FolderMap>,
+    ) -> Result<Vec<(String, Vec<CanvasFile>)>, Error> {
+        let handles = folder_maps.iter().map(|f| async move {
+            let course_id = &f.course_id();
+
+            // TODO: handle this unwrap
+            let course_folders = all_folders.get(course_id).unwrap();
+            let folder_name = f.folder_name();
+
+            // TODO: handle this unwrap
+            let folder = course_folders
+                .iter()
+                .find(|v| v.full_name().eq(folder_name))
+                .unwrap();
+            let files_url = folder.files_url();
+            let text = self.text(files_url).await.and_then(|v| {
+                let json = serde_json::from_str::<serde_json::Value>(&v)?;
+                let files = CanvasFile::get_vec(&json, folder.full_name());
+                Ok((folder.full_name().to_string(), files))
+            });
+            text
+        });
+        let results = futures::stream::iter(handles)
+            .buffer_unordered(5)
+            .collect::<Vec<_>>()
+            .await;
+        results.into_iter().collect::<Result<Vec<_>, Error>>()
     }
 
     // pub async fn

@@ -37,14 +37,19 @@ impl App {
     pub async fn run(&self) -> Result<(), Error> {
         let mut config = Config::load(self.args.config_path.as_ref())?;
         config.load_course_names().await?;
-        log::info!("config: {:?}", config);
         let mut updates: Vec<Result<Update, Error>> = vec![];
+        let map = config.fetch_all_folders().await.unwrap_or_default();
+        let api = config.get_api();
+        let all_tracked_files =
+            api.all_tracked_files(&map, config.folders()).await;
+        log::info!("{:?}", map.len());
+        log::info!("{:?}", all_tracked_files);
 
-        let mut prev_name = "";
-        let check = "✓".green();
-        let plus = "+".green();
-
-        let mut api = config.get_api();
+        // let mut prev_name = "";
+        // let check = "✓".green();
+        // let plus = "+".green();
+        //
+        // let mut api = config.get_api();
 
         // for task in config.folders() {
         //     let course_name = task.course_name();

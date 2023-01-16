@@ -3,6 +3,7 @@ use crate::error::Error;
 use crate::folder_map::{FolderMap, SFolderMap};
 use crate::types::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 const APP_NAME: &str = "canvas-sync";
@@ -79,14 +80,27 @@ impl Config {
         })
     }
 
-    pub async fn fetch_all_folders(&self) {
-        let course_ids = &self.folders.iter().map(|v| v.course_id());
+    fn unique_course_ids(&self) -> Vec<u32> {
+        let mut ids =
+            self.folders.iter().map(|v| *v.course_id()).collect::<Vec<_>>();
+        ids.sort();
+        ids.dedup();
+        ids
+    }
 
-        // let url = format!(
-        //     "https://canvas.nus.edu.sg/api/v1/courses/{course_id}/folders"
-        // );
-        // let text = self.text(&url).await?;
-        // let json = serde_json::from_str::<serde_json::Value>(&text)?;
+    /// Fetches all folders in a parallel API call. Requires all
+    /// course ids to be valid.
+    pub async fn fetch_all_folders(
+        &self,
+    ) -> Result<HashMap<u32, Vec<Folder>>, Error> {
+        let unique_course_ids = self.unique_course_ids();
+        let result = self.api.all_course_folders(&unique_course_ids).await;
+        log::info!(
+            "fetched {}/{} courses",
+            result.as_ref().map(|v| v.len()).unwrap_or(0),
+            unique_course_ids.len()
+        );
+        result
     }
 
     /// Modifies `self.folders` to include course names, and then sorts
