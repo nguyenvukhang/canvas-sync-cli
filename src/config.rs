@@ -1,162 +1,122 @@
+use crate::api::Api;
 use crate::error::Error;
-use crate::types::Course;
-use std::io::ErrorKind;
-
+use crate::folder_map::{FolderMap, SFolderMap};
+use crate::types::*;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::fs::File;
 use std::path::{Path, PathBuf};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ConfigMapJson {
-    url: String,
-    path: String,
-}
+const APP_NAME: &str = "canvas-sync";
+const CONFIG_NAME: &str = "config";
 
-#[derive(Debug)]
-pub struct ConfigMap {
-    course_id: u32,
-    folder_name: String,
-    path: PathBuf,
-    course_name: Option<String>,
-}
-
-impl ConfigMap {
-    pub fn new<P: AsRef<Path>>(
-        url: String,
-        path: String,
-        base_path: &Option<P>,
-    ) -> Result<Self, Error> {
-        let (course_id, folder_name) = parse_url(&url)?;
-        let path = match base_path {
-            Some(v) => v.as_ref().join(&path),
-            None => replace_tilde(&path).unwrap_or(PathBuf::from(&path)),
-        };
-        // create the deepest directory, but not the parent.
-        if let Some(parent) = path.parent() {
-            if parent.is_dir() {
-                fs::create_dir_all(&path)?;
-            } else {
-                return Err(Error::DownloadNoParentDir(path.to_owned()));
-            }
-        }
-
-        Ok(Self { course_id, folder_name, path, course_name: None })
-    }
-
-    pub fn course_id(&self) -> &u32 {
-        &self.course_id
-    }
-
-    pub fn course_name(&self) -> Option<&String> {
-        self.course_name.as_ref()
-    }
-
-    pub fn folder_name(&self) -> &str {
-        &self.folder_name
-    }
-
-    pub fn local_path(&self) -> &PathBuf {
-        &self.path
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ConfigJson {
+/// Serializeable version of the config.
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct SConfig {
+    access_token: String,
     base_path: Option<String>,
-    token: String,
-    maps: Vec<ConfigMapJson>,
+    folders: Vec<SFolderMap>,
 }
 
 #[derive(Debug)]
 pub struct Config {
-    token: String,
-    maps: Vec<ConfigMap>,
+    access_token: String,
+    folders: Vec<FolderMap>,
+    api: Api,
 }
+
+// Serializeable Config {{{
+impl SConfig {
+    /// Loads canvas-sync config
+    fn load<P>(config_path: Option<P>) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        match config_path {
+            Some(v) => confy::load_path(v),
+            None => confy::load(APP_NAME, Some(CONFIG_NAME)),
+        }
+        .map_err(|e| e.into())
+    }
+
+    /// Saves the current state of canvas-sync config
+    fn save(&self) -> Result<(), Error> {
+        confy::store(APP_NAME, Some(CONFIG_NAME), self).map_err(|e| e.into())
+    }
+
+    /// Gets the path to canvas-sync config
+    fn get_path() -> Result<PathBuf, Error> {
+        confy::get_configuration_file_path(APP_NAME, Some(CONFIG_NAME))
+            .map_err(|e| e.into())
+    }
+}
+/// }}}
 
 impl Config {
-    /// Tries to get config from the path supplied. If no path supplied,
-    /// then use the default path `./canvas.json`.
-    pub fn new(path: PathBuf) -> Result<Config, Error> {
-        let config_file = open_config(path)?;
-        let mut config_json =
-            serde_json::from_reader::<File, ConfigJson>(config_file)?;
+    pub fn load<P>(config_path: Option<P>) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        // Parse the raw config file with the serializeable struct
+        let sconfig = SConfig::load(config_path)?;
 
-        // load token from env if not found in json
-        if config_json.token.is_empty() {
-            config_json.token = get_canvas_token()?;
+        if sconfig.access_token.is_empty() {
+            return Err(Error::EmptyToken);
         }
 
-        let base_path = match &config_json.base_path {
-            Some(v) if v.is_empty() => None,
-            None => None,
-            Some(v) => Some(replace_tilde(&v).unwrap_or(PathBuf::from(v))),
-        };
+        // un-tilde the base_path
+        let base_path = sconfig.base_path.and_then(|v| replace_tilde(&v));
 
-        let config_maps: Result<Vec<ConfigMap>, Error> = config_json
-            .maps
+        // map each serializeable folder to its proper form
+        let folders: Result<Vec<FolderMap>, Error> = sconfig
+            .folders
             .into_iter()
-            .map(|m| ConfigMap::new(m.url, m.path, &base_path))
+            .map(|v| FolderMap::new(v, &base_path))
             .collect();
 
-        Ok(Config { maps: config_maps?, token: config_json.token })
+        Ok(Self {
+            folders: folders?,
+            api: Api::new(&sconfig.access_token),
+            access_token: sconfig.access_token,
+        })
     }
 
-    pub fn token(&self) -> &str {
-        &self.token
+    pub async fn fetch_all_folders(&self) {
+        let course_ids = &self.folders.iter().map(|v| v.course_id());
+
+        // let url = format!(
+        //     "https://canvas.nus.edu.sg/api/v1/courses/{course_id}/folders"
+        // );
+        // let text = self.text(&url).await?;
+        // let json = serde_json::from_str::<serde_json::Value>(&text)?;
     }
 
-    pub fn maps(&self) -> &Vec<ConfigMap> {
-        &self.maps
-    }
-
-    /// Modifies `self.map` to include course names, and thens sorts
+    /// Modifies `self.folders` to include course names, and then sorts
     /// them by course name.
-    pub fn load_course_names(
-        &mut self,
-        user_courses: &Vec<Course>,
-    ) -> Result<(), Error> {
-        for m in &mut self.maps {
-            match user_courses.iter().find(|v| v.id().eq(&m.course_id)) {
-                Some(found) => m.course_name = Some(found.name().to_string()),
-                None => return Err(Error::CourseNotFound(m.course_id)),
+    pub async fn load_course_names(&mut self) -> Result<(), Error> {
+        let user_courses = self.api.list_courses().await?;
+        for f in &mut self.folders {
+            match user_courses.iter().find(|v| v.id().eq(f.course_id())) {
+                Some(found) => f.set_course_name(&found.name()),
+                None => {
+                    return Err(Error::CourseNotFound(
+                        *f.course_id(),
+                        f.url().to_string(),
+                    ))
+                }
             }
         }
-        self.maps.sort_by(|a, b| a.course_name().cmp(&b.course_name()));
+        self.folders.sort_by(|a, b| a.course_name().cmp(&b.course_name()));
         Ok(())
     }
-}
 
-/// Opens the config and bubbles errors nicely.
-fn open_config(path: PathBuf) -> Result<File, Error> {
-    match File::open(&path) {
-        Ok(v) => Ok(v),
-        Err(e) => match e.kind() {
-            ErrorKind::NotFound => Err(Error::ConfigNotFound(path)),
-            _ => Err(e.into()),
-        },
+    /// Get a canvas api handler.
+    pub fn get_api(&self) -> Api {
+        Api::new(&self.access_token)
     }
-}
 
-/// Parses a url in a url-path config pair to extract course id and
-/// full folder name.
-///
-/// Example input:
-/// https://canvas.nus.edu.sg/courses/38518/files/folder/Lectures/Java%20Intro
-///
-/// Expected output:
-/// (38518, "Lectures/Java Intro")
-fn parse_url(url: &str) -> Result<(u32, String), Error> {
-    let err = || Error::InvalidTrackingUrl(url.to_string());
-    let url =
-        url.strip_prefix("https://canvas.nus.edu.sg/courses/").ok_or(err())?;
-    let (id, folder) = url.split_once("/").ok_or(err())?;
-    let id = id.parse::<u32>().map_err(|_| err())?;
-    let folder = folder.strip_prefix("files/folder/").ok_or(err())?;
-    if let Ok(decoded) = urlencoding::decode(folder) {
-        return Ok((id, decoded.to_string()));
+    /// Get a reference to the folders.
+    pub fn folders(&self) -> &Vec<FolderMap> {
+        &self.folders
     }
-    Ok((id, folder.to_string()))
 }
 
 /// Replace tilde with home.
@@ -167,12 +127,4 @@ fn replace_tilde(v: &str) -> Option<PathBuf> {
         }
     }
     None
-}
-
-/// Reads the $CANVAS_TOKEN environment variable for the access token.
-/// To obtain an access token: head over to
-/// https://canvas.nus.edu.sg/profile/settings
-/// and search for the word 'token'.
-fn get_canvas_token() -> Result<String, Error> {
-    std::env::var("CANVAS_TOKEN").map_err(|_| Error::CanvasEnvNotFound)
 }

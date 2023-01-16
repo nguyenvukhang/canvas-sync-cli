@@ -112,13 +112,11 @@ impl CanvasFile {
     }
 }
 
-/// Probably not needed
-#[allow(unused)]
 #[derive(Debug)]
 pub struct Course {
     id: u32,
     name: String,
-    course_code: String,
+    // course_code: String,
 }
 
 impl Course {
@@ -127,7 +125,7 @@ impl Course {
         json.to_vec(&required_keys, |j| Course {
             id: j["id"].as_u64().unwrap_or(0) as u32,
             name: json_string(&j["name"]),
-            course_code: json_string(&j["course_code"]),
+            // course_code: json_string(&j["course_code"]),
         })
     }
 

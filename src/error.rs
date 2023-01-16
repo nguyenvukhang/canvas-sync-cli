@@ -5,16 +5,20 @@ use std::path::{Path, PathBuf};
 pub enum Error {
     CanvasEnvNotFound,
     EmptyToken,
+    FolderNotFound(String, String),
     CourseHasNoName(u32),
-    CourseNotFound(u32),
+    CourseNotFound(u32, String),
     InvalidFilename(PathBuf),
-    ReqwestErr(reqwest::Error),
-    SerdeJsonErr(serde_json::Error),
-    IoErr(std::io::Error),
     ConfigNotFound(PathBuf),
     DownloadNoParentDir(PathBuf),
     InvalidTrackingUrl(String),
     DownloadErr(String, reqwest::Error),
+
+    // wrapped errors
+    ReqwestErr(reqwest::Error),
+    SerdeJsonErr(serde_json::Error),
+    IoErr(std::io::Error),
+    ConfyErr(confy::ConfyError),
 }
 
 fn path_to_string<P: AsRef<Path>>(path: P) -> String {
@@ -27,14 +31,23 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
         match self {
+            FolderNotFound(course, folder_name) => {
+                write!(
+                    f,
+                    "Folder not found. Course: {course}, folder: {folder_name}"
+                )
+            }
             DownloadErr(url, err) => {
                 write!(f, "Failed to download from url {url}, {err}")
             }
             CourseHasNoName(id) => {
                 write!(f, "Course should have a name (course_id: {id})")
             }
-            CourseNotFound(id) => {
-                write!(f, "No course found for course_id: {id}")
+            CourseNotFound(id, url) => {
+                write!(
+                    f,
+                    "No course found for course_id: {id}, from url `{url}`"
+                )
             }
             CanvasEnvNotFound => write!(f, "{CANVAS_ENV_NOT_FOUND}"),
             EmptyToken => write!(f, "No token provided"),
@@ -49,12 +62,14 @@ impl fmt::Display for Error {
             InvalidFilename(v) => {
                 write!(f, "Invalid filename: `{}`", path_to_string(v))
             }
-            ReqwestErr(v) => write!(f, "{v}"),
-            IoErr(v) => write!(f, "{v}"),
-            SerdeJsonErr(v) => write!(f, "{v}"),
             ConfigNotFound(v) => {
                 write!(f, "Config not found at `{}`", path_to_string(v))
             }
+            // wrapped errors
+            ReqwestErr(v) => write!(f, "{v}"),
+            IoErr(v) => write!(f, "{v}"),
+            SerdeJsonErr(v) => write!(f, "{v}"),
+            ConfyErr(v) => write!(f, "{v}"),
         }
     }
 }
@@ -74,5 +89,11 @@ impl From<serde_json::Error> for Error {
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
         Self::IoErr(error)
+    }
+}
+
+impl From<confy::ConfyError> for Error {
+    fn from(error: confy::ConfyError) -> Self {
+        Self::ConfyErr(error)
     }
 }
