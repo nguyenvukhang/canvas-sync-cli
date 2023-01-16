@@ -36,64 +36,58 @@ fn json_string(json: &Value) -> String {
 
 #[derive(Debug, Clone)]
 pub struct Folder {
-    #[allow(unused)]
-    id: u32,
-    full_name: String,
+    course_id: u32,
+    remote_path: String,
     files_url: String,
 }
 
 impl Folder {
-    pub fn get_vec(json: &Value) -> Vec<Folder> {
+    pub fn get_vec(json: &Value, course_id: &u32) -> Vec<Folder> {
         let required_keys = ["id", "full_name"];
         json.to_vec(&required_keys, |j| {
-            let full_name = j["full_name"]
+            let remote_path = j["full_name"]
                 .as_str()
                 // canvas just pre-pends everything with "course files/"
                 .map(|v| v.strip_prefix("course files/").unwrap_or(v))
                 .unwrap_or("")
                 .to_string();
             Folder {
-                id: j["id"].as_u64().unwrap_or(0) as u32,
+                course_id: *course_id,
                 files_url: json_string(&j["files_url"]),
-                full_name,
+                remote_path,
             }
         })
-    }
-
-    pub fn find<'a>(haystack: &'a Vec<Self>, folder: &str) -> Option<&'a Self> {
-        haystack.iter().find(|v| v.full_name.eq(folder))
     }
 
     pub fn files_url(&self) -> &str {
         &self.files_url
     }
 
-    pub fn full_name(&self) -> &str {
-        &self.full_name
+    pub fn remote_path(&self) -> &str {
+        &self.remote_path
+    }
+
+    pub fn course_id(&self) -> &u32 {
+        &self.course_id
     }
 }
 
 // TODO: handle version updates
 // this happens when lecturers update a file but keeps the same filename
-#[derive(Debug)]
-pub struct CanvasFile {
-    #[allow(unused)]
-    id: u32,
-    filename: String,
-    full_name: PathBuf,
+#[derive(Debug, Clone)]
+pub struct FileMap {
+    /// Location to send the download to.
+    local_target: PathBuf,
     download_url: String,
 }
 
-impl CanvasFile {
-    pub fn get_vec(json: &Value, parent_folder: &str) -> Vec<Self> {
+impl FileMap {
+    pub fn get_vec(json: &Value, local_dir: &PathBuf) -> Vec<Self> {
         let required_keys = ["uuid"];
-        let parent = PathBuf::from(parent_folder);
         json.to_vec(&required_keys, |j| {
             let filename = json_string(&j["filename"]).replace("+", "_");
             Self {
-                id: j["id"].as_u64().unwrap_or(0) as u32,
-                full_name: parent.join(&filename),
-                filename,
+                local_target: local_dir.join(&filename),
                 download_url: json_string(&j["url"]),
             }
         })
@@ -103,12 +97,8 @@ impl CanvasFile {
         &self.download_url
     }
 
-    pub fn filename(&self) -> &str {
-        &self.filename
-    }
-
-    pub fn full_name(&self) -> &PathBuf {
-        &self.full_name
+    pub fn local_target(&self) -> &PathBuf {
+        &self.local_target
     }
 }
 

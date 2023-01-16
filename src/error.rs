@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 pub enum Error {
     CanvasEnvNotFound,
     EmptyToken,
+    FilesUrlNotFound,
     FolderNotFound(String, String),
     CourseHasNoName(u32),
     CourseNotFound(u32, String),
@@ -31,6 +32,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
         match self {
+            FilesUrlNotFound => write!(f, "files_url not found"),
             FolderNotFound(course, folder_name) => {
                 write!(
                     f,

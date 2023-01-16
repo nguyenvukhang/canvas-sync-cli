@@ -37,56 +37,15 @@ impl App {
     pub async fn run(&self) -> Result<(), Error> {
         let mut config = Config::load(self.args.config_path.as_ref())?;
         config.load_course_names().await?;
-        let mut updates: Vec<Result<Update, Error>> = vec![];
-        let map = config.fetch_all_folders().await.unwrap_or_default();
-        let api = config.get_api();
-        let all_tracked_files =
-            api.all_tracked_files(&map, config.folders()).await;
-        log::info!("{:?}", map.len());
-        log::info!("{:?}", all_tracked_files);
+        config.fetch_all_folders().await?;
+        config.fetch_all_files().await?;
+
+        config.run(true).await;
 
         // let mut prev_name = "";
         // let check = "✓".green();
         // let plus = "+".green();
-        //
-        // let mut api = config.get_api();
 
-        // for task in config.folders() {
-        //     let course_name = task.course_name();
-        //     if !course_name.eq(prev_name) {
-        //         println!("{}", course_name);
-        //         prev_name = course_name;
-        //     }
-        //
-        //     let folders = api.course_folders(task.course_id()).await?;
-        //
-        //     let folder = Folder::find(&folders, task.folder_name()).ok_or(
-        //         Error::FolderNotFound(
-        //             course_name.to_string(),
-        //             task.folder_name().to_string(),
-        //         ),
-        //     )?;
-        //     println!("  {check} {}", folder.full_name());
-        //
-        //     let files = api.get_files(folder).await?;
-        //
-        //     for file in files {
-        //         let target = task.local_path().join(file.filename());
-        //         if target.is_file() {
-        //             continue;
-        //         }
-        //         let res = match self.args.dry_run {
-        //             true => Ok(()),
-        //             _ => api.download(file.download_url(), &target).await,
-        //         };
-        //
-        //         updates.push(res.map(|_| Update {
-        //             course: course_name.to_string(),
-        //             full_name: file.full_name().to_path_buf(),
-        //         }));
-        //     }
-        // }
-        //
         // if self.args.dry_run {
         //     eprintln!("\n--- DRY RUN (nothing downloaded) ---")
         // }
