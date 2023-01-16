@@ -127,3 +127,29 @@ impl Course {
         &self.name
     }
 }
+
+#[derive(Debug)]
+pub struct User {
+    id: u32,
+    name: String,
+}
+
+impl User {
+    pub fn get(json: &Value) -> Option<Self> {
+        if json["id"].is_null() || json["name"].is_null() {
+            return None;
+        }
+        Some(Self {
+            id: json["id"].as_u64().unwrap_or(0) as u32,
+            name: json_string(&json["name"]),
+        })
+    }
+
+    pub fn id(&self) -> &u32 {
+        &self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}

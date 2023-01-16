@@ -27,7 +27,7 @@ pub struct Config {
 // Serializeable Config {{{
 impl SConfig {
     /// Loads canvas-sync config
-    fn load<P>(config_path: Option<P>) -> Result<Self, Error>
+    pub fn load<P>(config_path: Option<P>) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
@@ -38,13 +38,17 @@ impl SConfig {
         .map_err(|e| e.into())
     }
 
+    pub fn set_token(&mut self, token: &str) {
+        self.access_token = token.to_string();
+    }
+
     /// Saves the current state of canvas-sync config
-    fn save(&self) -> Result<(), Error> {
+    pub fn save(&self) -> Result<(), Error> {
         confy::store(APP_NAME, Some(CONFIG_NAME), self).map_err(|e| e.into())
     }
 
     /// Gets the path to canvas-sync config
-    fn get_path() -> Result<PathBuf, Error> {
+    fn get_path(&self) -> Result<PathBuf, Error> {
         confy::get_configuration_file_path(APP_NAME, Some(CONFIG_NAME))
             .map_err(|e| e.into())
     }
@@ -74,6 +78,12 @@ impl Config {
             .collect();
 
         Ok(Self { folder_maps: folders?, api: Api::new(&sconfig.access_token) })
+    }
+
+    /// Gets the path to canvas-sync config
+    pub fn get_path(&self) -> Result<PathBuf, Error> {
+        confy::get_configuration_file_path(APP_NAME, Some(CONFIG_NAME))
+            .map_err(|e| e.into())
     }
 
     /// Modifies `self.folders` to include course names, and then sorts
@@ -206,6 +216,10 @@ impl Config {
         let result = self.api.download_many(&updates).await?;
         println!("Successfully downloaded {result} files");
         Ok(())
+    }
+
+    pub async fn hello(&self) -> Result<(), Error> {
+        self.api.hello().await
     }
 }
 

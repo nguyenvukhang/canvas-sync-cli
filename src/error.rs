@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 #[derive(Debug)]
 pub enum Error {
     CanvasEnvNotFound,
+    UnableToGetUserData,
     EmptyToken,
     FilesUrlNotFound,
     FolderNotFound(String, String),
@@ -32,6 +33,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
         match self {
+            UnableToGetUserData => write!(f, "Unable to get basic user data. Check again if access token is present and valid."),
             FilesUrlNotFound => write!(f, "files_url not found"),
             FolderNotFound(course, folder_name) => {
                 write!(

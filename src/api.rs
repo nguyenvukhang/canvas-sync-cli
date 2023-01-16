@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::folder_map::FolderMap;
-use crate::types::{Course, FileMap, Folder};
+use crate::types::{Course, FileMap, Folder, User};
 use futures::prelude::*;
 use futures::FutureExt;
 use reqwest::Response;
@@ -131,6 +131,20 @@ impl Api {
         let mut content = std::io::Cursor::new(response.bytes().await?);
         std::io::copy(&mut content, &mut target)?;
         Ok(())
+    }
+
+    /// Prints basic information about the user to make sure that the
+    /// access token is present and valid.
+    pub async fn hello(&self) -> Result<(), Error> {
+        let result =
+            self.json("https://canvas.nus.edu.sg/api/v1/users/self").await;
+        if let Ok(result) = result {
+            if let Some(user) = User::get(&result) {
+                println!("id: {}, name: {}", user.id(), user.name());
+                return Ok(());
+            }
+        }
+        Err(Error::UnableToGetUserData)
     }
 }
 
