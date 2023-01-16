@@ -34,6 +34,8 @@ fn json_string(json: &Value) -> String {
     json.as_str().unwrap_or("").to_string()
 }
 
+/// Corresponds to one `Foler` over on canvas.
+/// https://canvas.instructure.com/doc/api/files.html#Folder
 #[derive(Debug, Clone)]
 pub struct Folder {
     course_id: u32,
@@ -63,27 +65,26 @@ impl Folder {
         &self.files_url
     }
 
-    pub fn remote_path(&self) -> &str {
-        &self.remote_path
-    }
-
-    pub fn course_id(&self) -> &u32 {
-        &self.course_id
+    /// For mapping each folder back to its home course.
+    pub fn matches(&self, remote_path: &str, course_id: &u32) -> bool {
+        self.remote_path.eq(remote_path) && self.course_id.eq(course_id)
     }
 }
 
-// TODO: handle version updates
-// this happens when lecturers update a file but keeps the same filename
+/// Corresponds to one `File` over on canvas.
+/// https://canvas.instructure.com/doc/api/files.html#File
 #[derive(Debug, Clone)]
 pub struct FileMap {
+    /// Url that, when followed, will return a byte stream that is the
+    /// requested file.
+    download_url: String,
     /// Location to send the download to.
     local_target: PathBuf,
-    download_url: String,
 }
 
 impl FileMap {
     pub fn get_vec(json: &Value, local_dir: &PathBuf) -> Vec<Self> {
-        let required_keys = ["uuid"];
+        let required_keys = ["uuid", "filename", "url"];
         json.to_vec(&required_keys, |j| {
             let filename = json_string(&j["filename"]).replace("+", "_");
             Self {

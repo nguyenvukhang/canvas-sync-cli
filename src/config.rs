@@ -112,10 +112,9 @@ impl Config {
             folders.len()
         );
         for fm in &mut self.folder_maps {
-            let hit = folders.iter().position(|v| {
-                v.course_id().eq(fm.course_id())
-                    && v.remote_path().eq(fm.remote_path())
-            });
+            let hit = folders
+                .iter()
+                .position(|v| v.matches(fm.remote_path(), fm.course_id()));
             match hit {
                 None => {
                     return Err(Error::FolderNotFound(

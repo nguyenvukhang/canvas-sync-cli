@@ -48,6 +48,7 @@ impl Api {
         files_url: &str,
         parent: &PathBuf,
     ) -> Result<Vec<FileMap>, Error> {
+        // json will contain an array of file objects
         let json = self.json(files_url).await;
         json.map(|v| FileMap::get_vec(&v, parent))
     }
