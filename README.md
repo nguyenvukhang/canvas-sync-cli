@@ -32,53 +32,16 @@ If it doesn't exist, then create it and fill it in with this template:
 ```yaml
 ---
 access_token: a_very_secret_value
-base_path: /path/to/your/base
+base_path: /path/to/your/base # optional
 folders:
-  - url: "https://canvas.nus.edu.sg/courses/36732/files/folder/Lecture%20Notes"
+  - url: "https://canvas.nus.edu.sg/courses/12345/files/folder/Lecture%20Notes"
     path: MA2101/lec
-  - url: "https://canvas.nus.edu.sg/courses/36732/files/folder/Tutorial%20Solutions"
-    path: MA2101/tut-sol
-  - url: "https://canvas.nus.edu.sg/courses/36732/files/folder/Tutorials"
-    path: MA2101/tut
-  - url: "https://canvas.nus.edu.sg/courses/36736/files/folder/Course%20notes"
-    path: MA2104/lec
-  - url: "https://canvas.nus.edu.sg/courses/36736/files/folder/Tutorials"
+  - url: "https://canvas.nus.edu.sg/courses/98765/files/folder/Tutorials"
     path: MA2104/tut
-  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Lecture%20Notes"
-    path: MA2108/lec
-  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Homework"
-    path: MA2108/asm
-  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Tutorial%20solutions"
-    path: MA2108/tut-sol
-  - url: "https://canvas.nus.edu.sg/courses/36741/files/folder/Tutorials"
-    path: MA2108/tut
-  - url: "https://canvas.nus.edu.sg/courses/39264/files/folder/Lecture"
-    path: HSI2012/lec
 ```
 
-Make a `canvas.json` file and save it somewhere in your system.
-
-```JSON
-{
-  "token": "",
-  "base_path": "~/files/canvas-api",
-  "maps": [
-    {
-      "url": "https://canvas.nus.edu.sg/courses/36736/files/folder/Tutorials",
-      "path": "MA2104/tut"
-    },
-    {
-      "url": "https://canvas.nus.edu.sg/courses/36741/files/folder/Lecture%20Notes",
-      "path": "MA2108/lec"
-    },
-  ]
-}
-```
-
-There are three key components in your config:
-
-1. `token` - this is what authenticates into canvas instead of a
-   username and password. This can be found at your [canvas profile
+1. `access_token` - this is what authenticates into canvas instead of
+   a username and password. This can be found at your [canvas profile
    settings](https://canvas.nus.edu.sg/profile/settings) and looking
    around for the 'token' keyword. Generate a fresh one and make sure
    to save the token string to a safe location.
@@ -88,7 +51,7 @@ There are three key components in your config:
    want greater freedom in specifying each path. Otherwise, it's a
    nice way to shorten all your other paths.
 
-3. `maps` - this is an array of `{ url, path }` objects. `url` points
+3. `folders` - this is an array of `{ url, path }` objects. `url` points
    to the folder on canvas that you want to track. `path` points to
    the local directory on your computer that you want to be synced
    with that folder online.
@@ -103,11 +66,15 @@ In each `{ url, path }` object, is the page that each url should point to:
 
 ## Usage
 
-Once you have specified your [configuration](#configuration), to make
-your local folders update to date with canvas, execute the command
+Once you have specified your [configuration](#configuration), there
+are a few commands that `canvas-sync` supports:
 
 ```sh
-canvas-sync /path/to/canvas.json
+canvas-sync        # ping canvas servers to check if token is valid
+canvas-sync fetch  # fetch updates without downloading
+canvas-sync pull   # fetch and download updates
+canvas-sync config # see where your config.yml is stored.
+canvas-sync set-token <token>  # set your token
 ```
 
 [cargo-install]: https://doc.rust-lang.org/cargo/getting-started/installation.html
