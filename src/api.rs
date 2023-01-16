@@ -48,7 +48,6 @@ impl Api {
         files_url: &str,
         parent: &PathBuf,
     ) -> Result<Vec<FileMap>, Error> {
-        // json will contain an array of file objects
         let json = self.json(files_url).await;
         json.map(|v| FileMap::get_vec(&v, parent))
     }
@@ -137,15 +136,14 @@ impl Api {
     /// Prints basic information about the user to make sure that the
     /// access token is present and valid.
     pub async fn hello(&self) -> Result<(), Error> {
-        let result =
-            self.json("https://canvas.nus.edu.sg/api/v1/users/self").await;
-        if let Ok(result) = result {
-            if let Some(user) = User::get(&result) {
-                println!("id: {}, name: {}", user.id(), user.name());
-                return Ok(());
-            }
-        }
-        Err(Error::UnableToGetUserData)
+        let user = self
+            .get("https://canvas.nus.edu.sg/api/v1/users/self/profile")
+            .await?
+            .json::<User>()
+            .await
+            .map_err(|_| Error::UnableToGetUserData)?;
+        user.display();
+        Ok(())
     }
 }
 

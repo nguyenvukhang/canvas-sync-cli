@@ -9,6 +9,8 @@ quick:
 	@ RUST_LOG=canvas_sync=debug $(BIN)
 	@echo "~~~~~~~~~~~~~~ FIX TOKEN ~~~~~~~~~~~~~~~"
 	@ RUST_LOG=canvas_sync=debug $(BIN) set-token $(CANVAS_TOKEN)
+	@echo "~~~~~~~~~~~~~~ NO COMMAND ~~~~~~~~~~~~~~"
+	@ RUST_LOG=canvas_sync=debug $(BIN)
 	@echo "~~~~~~~~~~~~~~ CONFIG ~~~~~~~~~~~~~~~~~~"
 	@ RUST_LOG=canvas_sync=debug $(BIN) config
 	@echo "~~~~~~~~~~~~~~ FETCH ~~~~~~~~~~~~~~~~~~~"

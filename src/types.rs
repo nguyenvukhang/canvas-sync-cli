@@ -1,38 +1,6 @@
+use serde::Deserialize;
 use serde_json::Value;
 use std::path::PathBuf;
-
-/// Custom parser for an array of values stored within a
-/// `serde_json::Value`
-trait ToVec {
-    /// If any of the `required_keys` are not present in the array
-    /// element, skip that element. This allows for parsing of
-    /// partial/incomplete json data.
-    fn to_vec<T, F>(&self, required_keys: &[&str], f: F) -> Vec<T>
-    where
-        F: Fn(&Value) -> T;
-}
-
-impl ToVec for Value {
-    fn to_vec<T, F>(&self, required_keys: &[&str], f: F) -> Vec<T>
-    where
-        F: Fn(&Value) -> T,
-    {
-        let array = match self.as_array() {
-            Some(v) => v,
-            None => return vec![],
-        };
-        array
-            .into_iter()
-            .filter(|v| required_keys.iter().all(|k| !v[k].is_null()))
-            .map(f)
-            .collect()
-    }
-}
-
-/// Get a string without its quotes.
-fn json_string(json: &Value) -> String {
-    json.as_str().unwrap_or("").to_string()
-}
 
 /// Corresponds to one `Foler` over on canvas.
 /// https://canvas.instructure.com/doc/api/files.html#Folder
@@ -129,28 +97,59 @@ impl Course {
     }
 }
 
-#[derive(Debug)]
+/// Corresponds to one `Profile` over on canvas.
+/// https://canvas.instructure.com/doc/api/users.html#Profile
+#[derive(Debug, Deserialize)]
 pub struct User {
     id: u32,
     name: String,
+    integration_id: String,
+    primary_email: String,
 }
 
 impl User {
-    pub fn get(json: &Value) -> Option<Self> {
-        if json["id"].is_null() || json["name"].is_null() {
-            return None;
-        }
-        Some(Self {
-            id: json["id"].as_u64().unwrap_or(0) as u32,
-            name: json_string(&json["name"]),
-        })
+    pub fn display(&self) {
+        println!(
+            "\
+Canvas User Data
+  * canvas id: {}
+  * name:      {}
+  * email:     {}
+  * matric:    {}",
+            self.id, self.name, self.primary_email, self.integration_id
+        )
     }
+}
 
-    pub fn id(&self) -> &u32 {
-        &self.id
-    }
+/// Custom parser for an array of values stored within a
+/// `serde_json::Value`
+trait ToVec {
+    /// If any of the `required_keys` are not present in the array
+    /// element, skip that element. This allows for parsing of
+    /// partial/incomplete json data.
+    fn to_vec<T, F>(&self, required_keys: &[&str], f: F) -> Vec<T>
+    where
+        F: Fn(&Value) -> T;
+}
 
-    pub fn name(&self) -> &str {
-        &self.name
+impl ToVec for Value {
+    fn to_vec<T, F>(&self, required_keys: &[&str], f: F) -> Vec<T>
+    where
+        F: Fn(&Value) -> T,
+    {
+        let array = match self.as_array() {
+            Some(v) => v,
+            None => return vec![],
+        };
+        array
+            .into_iter()
+            .filter(|v| required_keys.iter().all(|k| !v[k].is_null()))
+            .map(f)
+            .collect()
     }
+}
+
+/// Get a string without its quotes.
+fn json_string(json: &Value) -> String {
+    json.as_str().unwrap_or("").to_string()
 }
