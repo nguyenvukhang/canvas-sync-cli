@@ -231,7 +231,7 @@ New token set! Try running `{BINARY_NAME}` to verify it.
             course_hash.get(&a.course_id).cmp(&course_hash.get(&b.course_id))
         });
         display_updates(&updates, &course_hash);
-        if !download {
+        if !download && !updates.is_empty() {
             println!("{}", "Fetch only. Nothing downloaded.".yellow());
         }
         Ok(())
