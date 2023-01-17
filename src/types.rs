@@ -1,99 +1,60 @@
-use serde::Deserialize;
-use serde_json::Value;
-use std::path::PathBuf;
+use crate::error::Result;
+use crate::string::parse_url;
+use crate::traits::*;
+use crate::BINARY_NAME;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
-/// Corresponds to one `Foler` over on canvas.
-/// https://canvas.instructure.com/doc/api/files.html#Folder
-#[derive(Debug, Clone)]
-pub struct Folder {
-    course_id: u32,
-    remote_path: String,
-    files_url: String,
+/// Serializable folder map
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FolderMap {
+    /// url of the user-facing folder page.
+    url: String,
+    /// local dir to track the folder that the url points to.
+    path: String,
+    /// base path (taken from the config)
+    base: Option<String>,
 }
 
-impl Folder {
-    pub fn get_vec(json: &Value, course_id: &u32) -> Vec<Folder> {
-        let required_keys = ["id", "full_name"];
-        json.to_vec(&required_keys, |j| {
-            let remote_path = j["full_name"]
-                .as_str()
-                // canvas just pre-pends everything with "course files/"
-                .map(|v| v.strip_prefix("course files/").unwrap_or(v))
-                .unwrap_or("")
-                .to_string();
-            Folder {
-                course_id: *course_id,
-                files_url: json_string(&j["files_url"]),
-                remote_path,
-            }
-        })
+impl FolderMap {
+    /// parse course_id from folder map's url
+    pub fn course_id(&self) -> Result<u32> {
+        parse_url(&self.url).map(|v| v.0)
     }
 
-    pub fn files_url(&self) -> &str {
-        &self.files_url
+    /// parse remote_path from folder map's url
+    pub fn remote_path(&self) -> Result<String> {
+        parse_url(&self.url).map(|v| v.1)
     }
 
-    /// For mapping each folder back to its home course.
-    pub fn matches(&self, remote_path: &str, course_id: &u32) -> bool {
-        self.remote_path.eq(remote_path) && self.course_id.eq(course_id)
-    }
-}
-
-/// Corresponds to one `File` over on canvas.
-/// https://canvas.instructure.com/doc/api/files.html#File
-#[derive(Debug, Clone)]
-pub struct FileMap {
-    /// Url that, when followed, will return a byte stream that is the
-    /// requested file.
-    download_url: String,
-    /// Location to send the download to.
-    local_target: PathBuf,
-}
-
-impl FileMap {
-    pub fn get_vec(json: &Value, local_dir: &PathBuf) -> Vec<Self> {
-        let required_keys = ["uuid", "filename", "url"];
-        json.to_vec(&required_keys, |j| {
-            let filename = json_string(&j["filename"]).replace("+", "_");
-            Self {
-                local_target: local_dir.join(&filename),
-                download_url: json_string(&j["url"]),
-            }
-        })
+    /// get local directory that tracks the url folder.
+    pub fn local_dir(&self) -> PathBuf {
+        let path = match &self.base {
+            Some(v) => Path::new(v).join(&self.path),
+            None => PathBuf::from(&self.path),
+        };
+        path.resolve().unwrap_or(path)
     }
 
-    pub fn download_url(&self) -> &str {
-        &self.download_url
+    /// check that local dir's parent exists to minimize creating new
+    /// directories.
+    pub fn parent_exists(&self) -> bool {
+        match self.local_dir().parent() {
+            None => false,
+            Some(v) => v.is_dir(),
+        }
     }
 
-    pub fn local_target(&self) -> &PathBuf {
-        &self.local_target
-    }
-}
-
-#[derive(Debug)]
-pub struct Course {
-    id: u32,
-    name: String,
-    // course_code: String,
-}
-
-impl Course {
-    pub fn get_vec(json: &Value) -> Vec<Course> {
-        let required_keys = ["uuid"];
-        json.to_vec(&required_keys, |j| Course {
-            id: j["id"].as_u64().unwrap_or(0) as u32,
-            name: json_string(&j["name"]),
-            // course_code: json_string(&j["course_code"]),
-        })
+    /// only to be used when parsing the config file for the first time
+    pub fn set(&mut self, base: Option<String>) {
+        if let Ok(url) = urlencoding::decode(&self.url) {
+            self.url = url.to_string()
+        }
+        self.base = base
     }
 
-    pub fn id(&self) -> &u32 {
-        &self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
+    pub fn url(&self) -> &str {
+        &self.url
     }
 }
 
@@ -111,7 +72,9 @@ impl User {
     pub fn display(&self) {
         println!(
             "\
-Canvas User Data
+{BINARY_NAME}
+
+user data
   * canvas id: {}
   * name:      {}
   * email:     {}
@@ -121,35 +84,13 @@ Canvas User Data
     }
 }
 
-/// Custom parser for an array of values stored within a
-/// `serde_json::Value`
-trait ToVec {
-    /// If any of the `required_keys` are not present in the array
-    /// element, skip that element. This allows for parsing of
-    /// partial/incomplete json data.
-    fn to_vec<T, F>(&self, required_keys: &[&str], f: F) -> Vec<T>
-    where
-        F: Fn(&Value) -> T;
-}
-
-impl ToVec for Value {
-    fn to_vec<T, F>(&self, required_keys: &[&str], f: F) -> Vec<T>
-    where
-        F: Fn(&Value) -> T,
-    {
-        let array = match self.as_array() {
-            Some(v) => v,
-            None => return vec![],
-        };
-        array
-            .into_iter()
-            .filter(|v| required_keys.iter().all(|k| !v[k].is_null()))
-            .map(f)
-            .collect()
+impl From<serde_json::Value> for User {
+    fn from(json: serde_json::Value) -> Self {
+        Self {
+            id: json["id"].to_u32(),
+            integration_id: json["integration_id"].to_str().to_string(),
+            primary_email: json["primary_email"].to_str().to_string(),
+            name: json["name"].to_str().to_string(),
+        }
     }
-}
-
-/// Get a string without its quotes.
-fn json_string(json: &Value) -> String {
-    json.as_str().unwrap_or("").to_string()
 }

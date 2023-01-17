@@ -1,5 +1,4 @@
-use crate::error::Error;
-use std::path::PathBuf;
+use crate::error::{Error, Result};
 
 /// Parses a url in a url-path config pair to extract course id and
 /// full folder name.
@@ -9,7 +8,7 @@ use std::path::PathBuf;
 ///
 /// Expected output:
 /// (38518, "Lectures/Java Intro")
-pub fn parse_url(url: &str) -> Result<(u32, String), Error> {
+pub fn parse_url(url: &str) -> Result<(u32, String)> {
     let err = || Error::InvalidTrackingUrl(url.to_string());
     let url =
         url.strip_prefix("https://canvas.nus.edu.sg/courses/").ok_or(err())?;
@@ -22,12 +21,17 @@ pub fn parse_url(url: &str) -> Result<(u32, String), Error> {
     Ok((id, folder.to_string()))
 }
 
-/// Replace tilde with home.
-pub fn replace_tilde(v: &str) -> Option<PathBuf> {
-    if let Some(homeless) = v.strip_prefix("~/") {
-        if let Some(home) = dirs::home_dir() {
-            return Some(home.join(homeless));
-        }
+/// Normalize filename by replacing '+' and '-' with '_', and then
+/// replacing all "__" with '_'
+pub fn normalize_filename(v: &str) -> String {
+    let mut v = v.replace("+", "_").replace(" ", "_").replace("-", "_");
+    let mut len = v.len();
+    loop {
+        v = v.replace("__", "_");
+        len = match v.len() {
+            l if l == len => break,
+            l => l,
+        };
     }
-    None
+    v
 }

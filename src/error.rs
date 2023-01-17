@@ -1,14 +1,15 @@
+use crate::BINARY_NAME;
 use std::fmt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    UnableToGetUserData,
     EmptyToken,
+    InvalidToken,
     FilesUrlNotFound,
-    FolderNotFound(String, String),
-    CourseNotFound(u32, String),
-    InvalidFilename(PathBuf),
+    FolderNotFetched(String),
     DownloadNoParentDir(PathBuf),
     InvalidTrackingUrl(String),
     DownloadErr(String, reqwest::Error),
@@ -20,49 +21,55 @@ pub enum Error {
     ConfyErr(confy::ConfyError),
 }
 
-fn path_to_string<P: AsRef<Path>>(path: P) -> String {
-    path.as_ref().to_str().unwrap_or("<Unable to parse filepath>").to_string()
+fn token_instructions(pre: &str) -> String {
+    format!(
+        "\
+{pre}
+
+To obtain a token, go to your profile settings at
+`https://canvas.nus.edu.sg/profile/settings`
+and create a new access token.
+
+Run `{BINARY_NAME} set-token <token>` to set the token,
+and then try to run `{BINARY_NAME}` again.
+"
+    )
+}
+
+fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
+    macro_rules! p { ($($arg:tt)*) => { write!(f, $($arg)*) }; }
+    use Error::*;
+    match err {
+        EmptyToken => p!("{}", token_instructions("No token provided.")),
+        InvalidToken => {
+            p!("{}", token_instructions("Invalid access token."))
+        }
+        FilesUrlNotFound => p!("files_url not found"),
+        FolderNotFetched(folder_name) => {
+            p!("Folder not fetched. Path: {folder_name}")
+        }
+        DownloadErr(url, err) => {
+            p!("Failed to download from url {url}, {err}")
+        }
+        InvalidTrackingUrl(v) => p!("Invalid url: {v}"),
+        DownloadNoParentDir(v) => {
+            write!(
+                f,
+                "Download target `{}` has no parent.",
+                v.to_string_lossy()
+            )
+        }
+        // wrapped errors
+        ReqwestErr(v) => p!("{v}"),
+        IoErr(v) => p!("{v}"),
+        SerdeJsonErr(v) => p!("{v}"),
+        ConfyErr(v) => p!("{v}"),
+    }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Error::*;
-        match self {
-            UnableToGetUserData => write!(f, "Unable to get basic user data. Check again if access token is present and valid."),
-            FilesUrlNotFound => write!(f, "files_url not found"),
-            FolderNotFound(course, folder_name) => {
-                write!(
-                    f,
-                    "Folder not found. Course: {course}, folder: {folder_name}"
-                )
-            }
-            DownloadErr(url, err) => {
-                write!(f, "Failed to download from url {url}, {err}")
-            }
-            CourseNotFound(id, url) => {
-                write!(
-                    f,
-                    "No course found for course_id: {id}, from url `{url}`"
-                )
-            }
-            EmptyToken => write!(f, "No token provided"),
-            InvalidTrackingUrl(v) => write!(f, "Invalid url: {v}"),
-            DownloadNoParentDir(v) => {
-                write!(
-                    f,
-                    "Download target `{}` has no parent.",
-                    path_to_string(v)
-                )
-            }
-            InvalidFilename(v) => {
-                write!(f, "Invalid filename: `{}`", path_to_string(v))
-            }
-            // wrapped errors
-            ReqwestErr(v) => write!(f, "{v}"),
-            IoErr(v) => write!(f, "{v}"),
-            SerdeJsonErr(v) => write!(f, "{v}"),
-            ConfyErr(v) => write!(f, "{v}"),
-        }
+        display(self, f)
     }
 }
 
