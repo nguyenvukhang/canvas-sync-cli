@@ -42,7 +42,7 @@ impl Api {
 
     /// Get a list of courses of the current user.
     pub async fn courses(&self) -> Result<Value> {
-        self.json("https://canvas.nus.edu.sg/api/v1/courses").await
+        self.json("https://canvas.nus.edu.sg/api/v1/courses?per_page=420").await
     }
 
     /// Get the files of a folder.

@@ -247,7 +247,13 @@ fn display_updates(updates: &Vec<Update>, course_names: &HashMap<u32, String>) {
     for update in updates {
         if update.course_id != prev_id {
             prev_id = update.course_id;
-            println!("{}", course_names.get(&update.course_id).unwrap());
+            match course_names.get(&update.course_id) {
+                Some(v) => println!("{v}"),
+                None => println!(
+                    "Error: failed to fetch course with id {}",
+                    update.course_id
+                ),
+            }
         }
         println!("  + {}", update.remote_path.to_string_lossy());
     }
