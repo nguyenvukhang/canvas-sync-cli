@@ -8,8 +8,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     EmptyToken,
     InvalidToken,
-    FilesUrlNotFound,
-    FolderNotFetched(String),
     DownloadNoParentDir(PathBuf),
     InvalidTrackingUrl(String),
     DownloadErr(String, reqwest::Error),
@@ -44,10 +42,6 @@ fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
         InvalidToken => {
             p!("{}", token_instructions("Invalid access token."))
         }
-        FilesUrlNotFound => p!("files_url not found"),
-        FolderNotFetched(folder_name) => {
-            p!("Folder not fetched. Path: {folder_name}")
-        }
         DownloadErr(url, err) => {
             p!("Failed to download from url {url}, {err}")
         }
@@ -55,7 +49,7 @@ fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
         DownloadNoParentDir(v) => {
             write!(
                 f,
-                "Download target `{}` has no parent.",
+                "Bad download target: `{}` (directory does not exist).",
                 v.to_string_lossy()
             )
         }
