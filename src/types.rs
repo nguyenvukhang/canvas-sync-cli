@@ -44,6 +44,12 @@ pub struct Update {
     pub remote_path: PathBuf,
 }
 
+#[derive(Debug)]
+pub struct Download {
+    pub url: String,
+    pub local_path: PathBuf,
+}
+
 /// Serializable folder map
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FolderMap {

@@ -9,14 +9,15 @@ use api::Api;
 use clap::{Parser, Subcommand};
 use config::Config;
 use error::{Error, Result};
+use futures::executor::ThreadPool;
 use futures::Future;
-use threadpool::ThreadPool;
 use traits::*;
-use types::{FolderMap, Update, User};
+use types::{Download, FolderMap, Tsq, Update, User};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::{Arc, Condvar, Mutex};
 
 // const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 pub const BINARY_NAME: &str = "canvas-sync";
@@ -80,18 +81,18 @@ impl<'a> Sync<'a> {
     ) -> Result<Vec<Update>> {
         let a: Result<Vec<(Vec<_>, Vec<_>)>> = tasks.into_iter().collect();
         let (downloads, updates): (Vec<_>, Vec<_>) = a?.into_iter().unzip();
-        let updates = updates.into_iter().flat_map(|v| v).collect::<Vec<_>>();
-        let downloads =
-            downloads.into_iter().flat_map(|v| v).collect::<Vec<_>>();
+        let updates = updates.into_iter().flatten().collect::<Vec<_>>();
+        let downloads = downloads.into_iter().flatten();
         // fetch at most 5 `api.download()` in a row
         let downloads = api::resolve(downloads, 5).await;
         downloads.into_iter().collect::<Result<Vec<()>>>()?;
         Ok(updates)
     }
 
-    /// Terminal function of the `Sync` struct. Awaiting this will
-    /// result in the completion of all updates/downloads.
-    async fn run(self) -> Result<Vec<Update>> {
+    /// Terminal function of the `Sync` struct. Returns a list of all
+    /// downloadables (url -> local path) pairs, and a list of all
+    /// updates found.
+    async fn run(self) -> Result<(Vec<Download>, Vec<Update>)> {
         let folders = self.api.course_folders(self.course_id).await?;
         let folders: Vec<(u32, String)> = folders
             .as_array()
@@ -109,6 +110,8 @@ impl<'a> Sync<'a> {
 
         let local_dir = self.fm.local_dir();
 
+        // List of pairs. Left one is list of url-filename pairs
+        // Right one is remote directory on canvas.
         let loaded_files = {
             let t = folders.iter().map(|(folder_id, remote_dir)| async move {
                 let files = self.api.files(*folder_id).await?;
@@ -127,17 +130,19 @@ impl<'a> Sync<'a> {
                 Ok((files, PathBuf::from(remote_dir)))
             });
             let t = api::resolve(t, 5).await;
-            let t: Result<Vec<_>> = t.into_iter().collect();
+            let t: Result<Vec<(Vec<_>, _)>> = t.into_iter().collect();
             t
         }?;
 
-        let handles = loaded_files
+        let tasks: Vec<Result<(Vec<_>, Vec<_>)>> = loaded_files
             .into_iter()
-            .map(|(a, b)| (a, b, &local_dir))
-            .map(|(files, remote_dir, local_dir)| async move {
+            .map(|(a, b)| (local_dir.join(&b), a, b))
+            .map(|(local_dir, mut files, remote_dir)| {
                 if self.download {
                     std::fs::create_dir_all(&local_dir)?;
                 }
+
+                files.retain(|f| !local_dir.join(&f.1).is_file());
 
                 let updates = files
                     .iter()
@@ -156,15 +161,20 @@ impl<'a> Sync<'a> {
                     .filter_map(|(url, filename)| {
                         let local_path = local_dir.join(&filename);
                         (!local_path.is_file())
-                            .then(|| self.api.clone().download(url, local_path))
+                            .then(|| Download { url, local_path })
                     })
                     .collect();
 
                 Ok((downloads, updates))
-            });
-        // fetch at most 5 `api.files()` in a row
-        let tasks = api::resolve(handles, 5).await;
-        Sync::parallel(tasks).await
+            })
+            .collect();
+
+        let tasks: Result<Vec<(Vec<_>, Vec<_>)>> = tasks.into_iter().collect();
+        let (downloads, updates): (Vec<Vec<_>>, Vec<Vec<_>>) =
+            tasks?.into_iter().unzip();
+        let downloads = downloads.into_iter().flatten().collect();
+        let updates = updates.into_iter().flatten().collect();
+        Ok((downloads, updates))
     }
 }
 
@@ -218,6 +228,15 @@ New token set! Try running `{BINARY_NAME}` to verify it.
         }
     }
 
+    async fn download_all(downloads: Vec<Download>, api: &Api) -> Result<()> {
+        let handles = downloads
+            .into_iter()
+            .map(|d| api.clone().download(d.url, d.local_path));
+        let results = api::resolve(handles, 5).await;
+        let results: Result<Vec<_>> = results.into_iter().collect();
+        results.map(|_| ())
+    }
+
     /// Runs a full update on every folder listed. Only downloads
     /// files of `download` is set to true.
     async fn update(&self, download: bool) -> Result<()> {
@@ -233,12 +252,10 @@ New token set! Try running `{BINARY_NAME}` to verify it.
         println!("Syncing {} folders...", results.len());
         // sync at most 5 folders at a time.
         let loloupdates = api::resolve(results, 5).await;
-        let mut updates: Vec<Update> = loloupdates
-            .into_iter()
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .flat_map(|v| v)
-            .collect();
+
+        let (downloads, mut updates) = untangle(loloupdates)?;
+        App::download_all(downloads, &api).await?;
+
         let user_courses = api.courses().await?.to_value_vec();
         let course_hash = user_courses
             .into_iter()
@@ -255,6 +272,7 @@ New token set! Try running `{BINARY_NAME}` to verify it.
         if !download && !updates.is_empty() {
             println!("! Fetch only. Nothing downloaded.");
         }
+
         Ok(())
     }
 }
@@ -288,4 +306,14 @@ async fn main() {
     if let Err(err) = outcome {
         eprintln!("{err}")
     }
+}
+
+fn untangle<A, B>(
+    tasks: Vec<Result<(Vec<A>, Vec<B>)>>,
+) -> Result<(Vec<A>, Vec<B>)> {
+    let tasks: Result<Vec<(Vec<A>, Vec<B>)>> = tasks.into_iter().collect();
+    let (a, b): (Vec<Vec<A>>, Vec<Vec<B>>) = tasks?.into_iter().unzip();
+    let a = a.into_iter().flatten().collect();
+    let b = b.into_iter().flatten().collect();
+    Ok((a, b))
 }

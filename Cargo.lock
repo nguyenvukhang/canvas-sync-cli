@@ -51,6 +51,7 @@ dependencies = [
  "env_logger",
  "futures",
  "log",
+ "num_cpus",
  "reqwest",
  "serde",
  "serde_json",
@@ -287,6 +288,7 @@ dependencies = [
  "futures-core",
  "futures-task",
  "futures-util",
+ "num_cpus",
 ]
 
 [[package]]
