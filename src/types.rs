@@ -5,6 +5,12 @@ use crate::BINARY_NAME;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
+pub struct Update {
+    pub course_id: u32,
+    pub remote_path: PathBuf,
+}
+
 /// Serializable folder map
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FolderMap {

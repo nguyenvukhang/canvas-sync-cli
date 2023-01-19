@@ -12,7 +12,7 @@ use error::{Error, Result};
 use futures::Future;
 use string::normalize_filename;
 use traits::*;
-use types::{FolderMap, User};
+use types::{FolderMap, Update, User};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -47,12 +47,6 @@ enum Commands {
 #[derive(Debug)]
 pub struct App {
     args: Args,
-}
-
-#[derive(Debug)]
-struct Update {
-    course_id: u32,
-    remote_path: PathBuf,
 }
 
 fn download_folder(
