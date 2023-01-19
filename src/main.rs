@@ -58,7 +58,7 @@ async fn sync_folder(
         return Err(Error::DownloadNoParentDir(fm.local_dir()));
     }
     let course_id = fm.course_id()?;
-    let tracked_remote_path = fm.remote_path()?;
+    let tracked_remote_dir = fm.remote_dir()?;
 
     let folders: Vec<(u32, String)> = api
         .course_folders(course_id)
@@ -66,7 +66,7 @@ async fn sync_folder(
         .as_array()
         .map(|f| {
             f.iter()
-                .filter_map(|v| v.to_remote_folder(&tracked_remote_path))
+                .filter_map(|v| v.to_remote_folder(&tracked_remote_dir))
                 .collect()
         })
         .unwrap_or_default();
@@ -80,8 +80,8 @@ async fn sync_folder(
     let local_dir = fm.local_dir();
     let handles = folders
         .into_iter()
-        .map(|(id, rp)| (local_dir.join(&rp), id, PathBuf::from(rp)))
-        .map(|(local_dir, folder_id, remote_path)| async move {
+        .map(|(id, rd)| (local_dir.join(&rd), id, PathBuf::from(rd)))
+        .map(|(local_dir, folder_id, remote_dir)| async move {
             let files = api.files(folder_id).await?.to_value_vec();
             if download {
                 std::fs::create_dir_all(&local_dir)?;
@@ -99,7 +99,7 @@ async fn sync_folder(
                 .iter()
                 .map(|(_, filename)| Update {
                     course_id,
-                    remote_path: remote_path.join(&filename),
+                    remote_path: remote_dir.join(&filename),
                 })
                 .collect();
 

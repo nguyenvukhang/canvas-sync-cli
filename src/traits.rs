@@ -15,11 +15,11 @@ pub trait EasyJson {
     // Extract a folder id and a remote path from a JSON object.
     // https://canvas.instructure.com/doc/api/files.html#Folder
     //
-    // if tracked_remote_path is blank, then the tracking begins from
+    // if tracked_remote_dir is blank, then the tracking begins from
     // the root folder.
     fn to_remote_folder(
         &self,
-        tracked_remote_path: &str,
+        tracked_remote_dir: &str,
     ) -> Option<(u32, String)>;
 
     fn to_normalized_filename(&self) -> Option<String>;
@@ -43,28 +43,27 @@ impl EasyJson for Value {
 
     fn to_remote_folder(
         &self,
-        tracked_remote_path: &str,
+        tracked_remote_dir: &str,
     ) -> Option<(u32, String)> {
         if self["id"].is_null() || self["full_name"].is_null() {
             return None;
         }
         let folder_id = self["id"].as_u64()? as u32;
-        let t = tracked_remote_path;
+        let t = tracked_remote_dir;
 
         // expected value of full_path:
         // `course files/path/of/actual/folder`
         let full_path = self["full_name"].as_str()?;
-        let remote_path = full_path.strip_prefix("course files/")?;
+        let remote_dir = full_path.strip_prefix("course files/")?;
 
-        if remote_path.eq(t) || tracked_remote_path.is_empty() {
-            let remote_path = remote_path.to_string();
-            return Some((folder_id, remote_path));
+        if remote_dir.eq(t) || tracked_remote_dir.is_empty() {
+            let remote_dir = remote_dir.to_string();
+            return Some((folder_id, remote_dir));
         }
 
-        if remote_path.starts_with(t) && remote_path[t.len()..].starts_with('/')
-        {
-            let remote_path = remote_path[t.len() + 1..].to_string();
-            return Some((folder_id, remote_path));
+        if remote_dir.starts_with(t) && remote_dir[t.len()..].starts_with('/') {
+            let remote_dir = remote_dir[t.len() + 1..].to_string();
+            return Some((folder_id, remote_dir));
         }
 
         None

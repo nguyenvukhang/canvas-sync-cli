@@ -28,8 +28,8 @@ impl FolderMap {
         parse_url(&self.url).map(|v| v.0)
     }
 
-    /// parse remote_path from folder map's url
-    pub fn remote_path(&self) -> Result<String> {
+    /// parse remote directory from folder map's url
+    pub fn remote_dir(&self) -> Result<String> {
         parse_url(&self.url).map(|v| v.1)
     }
 
