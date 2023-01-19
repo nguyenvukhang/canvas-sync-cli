@@ -28,3 +28,4 @@ env_logger = "0.10.0"
 log = "0.4.17"
 confy = { "version" = "0.5.1", features = ["yaml_conf"], default-features = false }
 futures = "0.3.25"
+threadpool = "1.8.1"

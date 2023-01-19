@@ -10,6 +10,7 @@ use clap::{Parser, Subcommand};
 use config::Config;
 use error::{Error, Result};
 use futures::Future;
+use threadpool::ThreadPool;
 use traits::*;
 use types::{FolderMap, Update, User};
 
