@@ -100,6 +100,8 @@ fn _resolve<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
         return dirs::home_dir();
     }
     dirs::home_dir().map(|mut home| {
+        // unwrap safety guaranteed because logically
+        // path already starts with "~/" at this point.
         if home == Path::new("/") {
             // Corner case: `h` root directory;
             // don't prepend extra `/`, just drop the tilde.
