@@ -8,20 +8,20 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Api {
-    /// `Bearer <canvas access token>`
-    auth_header: String,
+    /// Canvas access token
+    access_token: String,
 }
 
 impl Api {
     pub fn new(access_token: &str) -> Self {
-        Self { auth_header: format!("Bearer {}", access_token) }
+        Self { access_token: access_token.to_string() }
     }
 
     /// Send off an authorized request.
     async fn get(&self, url: &str) -> Result<Response> {
         let client = reqwest::Client::new();
         let req = client.get(url);
-        Ok(req.header("Authorization", &self.auth_header).send().await?)
+        Ok(req.bearer_auth(&self.access_token).send().await?)
     }
 
     /// Get the data of a request in json form.
