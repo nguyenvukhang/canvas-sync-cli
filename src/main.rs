@@ -107,15 +107,15 @@ impl<'a> Sync<'a> {
         }
 
         let local_dir = self.fm.local_dir();
-        let handles = folders
-            .into_iter()
-            .map(|(id, rd)| (local_dir.join(&rd), id, PathBuf::from(rd)))
-            .map(|(local_dir, folder_id, remote_dir)| async move {
-                let files = self.api.files(folder_id).await?.to_value_vec();
-                if self.download {
-                    std::fs::create_dir_all(&local_dir)?;
-                }
+
+        let loaded_files = {
+            let t = folders.iter().map(|(folder_id, remote_dir)| async move {
+                let files = self.api.files(*folder_id).await?;
                 let files = files
+                    .as_array()
+                    .ok_or(Error::NoFoldersFoundInCourse {
+                        url: self.fm.url().to_string(),
+                    })?
                     .into_iter()
                     .filter_map(|f| {
                         let url = f["url"].as_str()?.to_string();
@@ -123,6 +123,20 @@ impl<'a> Sync<'a> {
                         Some((url, filename))
                     })
                     .collect::<Vec<_>>();
+                Ok((files, PathBuf::from(remote_dir)))
+            });
+            let t = api::resolve(t, 5).await;
+            let t: Result<Vec<_>> = t.into_iter().collect();
+            t
+        }?;
+
+        let handles = loaded_files
+            .into_iter()
+            .map(|(a, b)| (a, b, &local_dir))
+            .map(|(files, remote_dir, local_dir)| async move {
+                if self.download {
+                    std::fs::create_dir_all(&local_dir)?;
+                }
 
                 let updates = files
                     .iter()
