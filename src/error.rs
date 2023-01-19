@@ -9,6 +9,7 @@ pub enum Error {
     EmptyToken,
     InvalidToken,
     UnableToGetConfigPath,
+    Debug(String),
     DownloadNoParentDir(PathBuf),
     InvalidTrackingUrl(String),
     DownloadErr(String, reqwest::Error),
@@ -39,6 +40,7 @@ fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
     macro_rules! p { ($($arg:tt)*) => { write!(f, $($arg)*) }; }
     use Error::*;
     match err {
+        Debug(msg) => p!("{msg}"),
         EmptyToken => p!("{}", token_instructions("No token provided.")),
         InvalidToken => {
             p!("{}", token_instructions("Invalid access token."))
@@ -66,6 +68,12 @@ fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         display(self, f)
+    }
+}
+
+impl Error {
+    pub fn of(msg: &str) -> Self {
+        Error::Debug(msg.to_string())
     }
 }
 

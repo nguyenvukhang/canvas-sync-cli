@@ -10,11 +10,13 @@ use clap::{Parser, Subcommand};
 use config::Config;
 use error::{Error, Result};
 use futures::Future;
-use std::collections::HashMap;
-use std::path::PathBuf;
 use string::normalize_filename;
 use traits::*;
 use types::{FolderMap, User};
+
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::process::Command;
 
 // const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 pub const BINARY_NAME: &str = "canvas-sync";
@@ -31,8 +33,13 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    SetToken { token: String },
-    Config,
+    SetToken {
+        token: String,
+    },
+    Config {
+        #[arg(short, long)]
+        edit: bool,
+    },
     Fetch,
     Pull,
 }
@@ -182,8 +189,15 @@ New token set! Try running `{BINARY_NAME}` to verify it.
                 );
                 Ok(())
             }
-            C::Config => {
+            C::Config { edit: false } => {
                 println!("{}", Config::path()?.to_string_lossy());
+                Ok(())
+            }
+            C::Config { edit: true } => {
+                let editor = std::env::var("EDITOR").map_err(|_| {
+                    Error::of("Unable to get an editor from $EDITOR.")
+                })?;
+                Command::new(editor).arg(Config::path()?).spawn()?.wait()?;
                 Ok(())
             }
             C::Pull => self.update(true).await,
