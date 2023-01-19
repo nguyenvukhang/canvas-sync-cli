@@ -21,7 +21,11 @@ impl Api {
     async fn get(&self, url: &str) -> Result<Response> {
         let client = reqwest::Client::new();
         let req = client.get(url);
-        Ok(req.bearer_auth(&self.access_token).send().await?)
+        Ok(req
+            .bearer_auth(&self.access_token)
+            .query(&[("per_page", "118")])
+            .send()
+            .await?)
     }
 
     /// Get the data of a request in json form.
@@ -48,7 +52,7 @@ impl Api {
 
     /// Get a list of courses of the current user.
     pub async fn courses(&self) -> Result<Value> {
-        self.json("https://canvas.nus.edu.sg/api/v1/courses?per_page=420").await
+        self.json("https://canvas.nus.edu.sg/api/v1/courses").await
     }
 
     /// Get the files of a folder.
@@ -62,7 +66,6 @@ impl Api {
 
     /// Get the folders of a particular course id.
     pub async fn course_folders(&self, course_id: u32) -> Result<Value> {
-        // log::info!("[API::COURSE FOLDERS] {course_id}");
         let url = format!(
             "https://canvas.nus.edu.sg/api/v1/courses/{course_id}/folders"
         );
