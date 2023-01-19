@@ -10,7 +10,6 @@ use clap::{Parser, Subcommand};
 use config::Config;
 use error::{Error, Result};
 use futures::Future;
-use string::normalize_filename;
 use traits::*;
 use types::{FolderMap, Update, User};
 
@@ -61,28 +60,22 @@ fn download_folder(
     if download {
         std::fs::create_dir_all(&local_dir)?;
     }
-    let mut updates = vec![];
     let remote_path = PathBuf::from(remote_path);
-    let downloads = files
+    let (downloads, updates): (Vec<_>, Vec<_>) = files
         .into_iter()
         .filter_map(|f| {
-            let filename = f["filename"].to_str();
-            let filename = normalize_filename(filename);
+            let filename = f.to_normalized_filename()?;
             let local_path = local_dir.join(&filename);
-            match local_path.is_file() {
-                false => {
-                    updates.push(Update {
-                        course_id,
-                        remote_path: remote_path.join(&filename),
-                    });
-                    Some((local_path, f["url"].to_str().to_string()))
-                }
-                true => None,
-            }
+            let url = f["url"].to_str().to_string();
+            let download = (download && !local_path.is_file())
+                .then(|| api.clone().download(url, local_path));
+            let update =
+                Update { course_id, remote_path: remote_path.join(&filename) };
+            Some((download, update))
         })
-        .filter(|_| download)
-        .map(|(local_path, url)| api.clone().download(url, local_path));
-    Ok((downloads.collect(), updates))
+        .unzip();
+    let downloads = downloads.into_iter().filter_map(|v| v).collect();
+    Ok((downloads, updates))
 }
 
 /// Runs a full sync on a folder
