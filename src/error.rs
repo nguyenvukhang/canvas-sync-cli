@@ -8,6 +8,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     EmptyToken,
     InvalidToken,
+    CanvasError { msg: String, url: String },
     UnableToGetConfigPath,
     Debug(String),
     DownloadNoParentDir(PathBuf),
@@ -41,6 +42,7 @@ fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
     use Error::*;
     match err {
         Debug(msg) => p!("{msg}"),
+        CanvasError { msg, url } => p!("Canvas error: {msg}\nurl: {url}"),
         EmptyToken => p!("{}", token_instructions("No token provided.")),
         InvalidToken => {
             p!("{}", token_instructions("Invalid access token."))

@@ -1,4 +1,5 @@
 use crate::error::{Error, Result};
+use crate::traits::*;
 use futures::{FutureExt, StreamExt};
 use reqwest::Response;
 use serde_json::Value;
@@ -29,7 +30,13 @@ impl Api {
         if json["errors"][0]["message"].eq("Invalid access token.") {
             return Err(Error::InvalidToken);
         }
-        log::info!("response: {:?}", json);
+        if json["errors"].as_array().map_or(false, |v| v.len() > 0) {
+            let msg = json["errors"][0]["message"].to_str();
+            return Err(Error::CanvasError {
+                msg: msg.to_string(),
+                url: url.to_string(),
+            });
+        }
         Ok(json)
     }
 

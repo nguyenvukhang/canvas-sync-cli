@@ -1,8 +1,7 @@
 build:
-	@make debug
 	mkdir -p build
-	cd build && cmake .. && cmake --build .
 	@make build_rust
+	cd build && cmake .. && cmake --build .
 	@make run
 
 build_rust:

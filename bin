@@ -3,7 +3,8 @@
 main() {
   local BIN=./target/debug/canvas-sync
   cargo build || exit 1
-  RUST_LOG=canvas_sync=debug $BIN $@
+  $BIN $@
+  # RUST_LOG=canvas_sync=debug $BIN $@
 }
 
 main $@

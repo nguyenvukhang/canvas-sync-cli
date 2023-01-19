@@ -8,17 +8,38 @@ use crate::error::{Error, Result};
 ///
 /// Expected output:
 /// (38518, "Lectures/Java Intro")
-pub fn parse_url(url: &str) -> Result<(u32, String)> {
+pub fn parse_url(mut url: &str) -> Result<(u32, String)> {
     let err = || Error::InvalidTrackingUrl(url.to_string());
-    let url =
-        url.strip_prefix("https://canvas.nus.edu.sg/courses/").ok_or(err())?;
+    if url.starts_with("https://") {
+        url = &url[8..];
+    }
+    if url.starts_with("canvas.nus.edu.sg/courses/") {
+        url = &url[26..];
+    }
     let (id, folder) = url.split_once("/").ok_or(err())?;
     let id = id.parse::<u32>().map_err(|_| err())?;
+    if folder.eq("files") {
+        return Ok((id, "".to_string()));
+    }
     let folder = folder.strip_prefix("files/folder/").ok_or(err())?;
     if let Ok(decoded) = urlencoding::decode(folder) {
         return Ok((id, decoded.to_string()));
     }
     Ok((id, folder.to_string()))
+}
+
+#[test]
+fn test_parse_url() -> Result<()> {
+    let (id, path) =
+        parse_url("https://canvas.nus.edu.sg/courses/36732/files")?;
+    assert_eq!(id, 36732);
+    assert_eq!(path, "");
+    let (id, path) = parse_url(
+        "https://canvas.nus.edu.sg/courses/36732/files/folder/Lecture%20Notes",
+    )?;
+    assert_eq!(id, 36732);
+    assert_eq!(path, "Lecture Notes");
+    Ok(())
 }
 
 /// Normalize filename by replacing '+' and '-' with '_', and then

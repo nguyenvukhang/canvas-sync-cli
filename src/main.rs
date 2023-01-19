@@ -102,17 +102,27 @@ async fn sync_folder(
     let mut folders = course_folders.to_value_vec();
     let with_trailing_slash = format!("{remote_path}/");
     folders.retain(|v| !v["id"].is_null() && !v["full_name"].is_null());
+
+    let root = remote_path.is_empty();
+
+    // this is the case of the root folder
     let folders: Vec<(u32, String)> = folders
         .into_iter()
         .filter_map(|v| {
-            let id = (&v["id"]).to_u32();
+            let folder_id = v["id"].to_u32();
             let rp = v["full_name"].to_str();
             let rp = rp.strip_prefix("course files/")?;
+            if root {
+                return Some((folder_id, rp.to_string()));
+            }
             if rp.eq(&remote_path) {
-                return Some((id, "".to_string()));
+                return Some((folder_id, "".to_string()));
             }
             if rp.starts_with(&with_trailing_slash) {
-                return Some((id, (&rp[remote_path.len() + 1..]).to_string()));
+                return Some((
+                    folder_id,
+                    (&rp[remote_path.len() + 1..]).to_string(),
+                ));
             }
             None
         })
