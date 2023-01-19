@@ -1,6 +1,5 @@
 use crate::error::{Error, Result};
-use futures::prelude::*;
-use futures::FutureExt;
+use futures::{FutureExt, StreamExt};
 use reqwest::Response;
 use serde_json::Value;
 use std::fs::File;
@@ -63,18 +62,18 @@ impl Api {
         self.json(&url).await
     }
 
-    /// Follows `url` to a file and downloads it to `path`.
-    pub async fn download(self, url: String, path: PathBuf) -> Result<()> {
-        log::info!("[API::DOWNLOAD] {path:?}");
-        if path.is_file() {
-            std::fs::remove_file(&path).ok();
+    /// Follows `url` to a file and downloads it to `filepath`.
+    pub async fn download(self, url: String, filepath: PathBuf) -> Result<()> {
+        log::info!("[API::DOWNLOAD] {filepath:?}");
+        if filepath.is_file() {
+            std::fs::remove_file(&filepath).ok();
         }
-        if let Some(parent) = path.parent() {
+        if let Some(parent) = filepath.parent() {
             if parent.as_os_str().is_empty() || !parent.is_dir() {
-                return Err(Error::DownloadNoParentDir(path.to_path_buf()));
+                return Err(Error::DownloadNoParentDir(filepath.to_path_buf()));
             }
         }
-        let mut target = File::create(&path)?;
+        let mut target = File::create(&filepath)?;
         let response = reqwest::get(&url)
             .await
             .map_err(|e| Error::DownloadErr(url.to_string(), e))?;

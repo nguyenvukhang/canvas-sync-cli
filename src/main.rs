@@ -7,7 +7,6 @@ mod types;
 
 use api::Api;
 use clap::{Parser, Subcommand};
-use colored::Colorize;
 use config::Config;
 use error::{Error, Result};
 use futures::Future;
@@ -232,7 +231,7 @@ New token set! Try running `{BINARY_NAME}` to verify it.
         });
         display_updates(&updates, &course_hash);
         if !download && !updates.is_empty() {
-            println!("{}", "Fetch only. Nothing downloaded.".yellow());
+            println!("! Fetch only. Nothing downloaded.");
         }
         Ok(())
     }

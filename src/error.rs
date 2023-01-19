@@ -27,7 +27,7 @@ fn token_instructions(pre: &str) -> String {
 {pre}
 
 To obtain a token, go to your profile settings at
-`https://canvas.nus.edu.sg/profile/settings`
+https://canvas.nus.edu.sg/profile/settings
 and create a new access token.
 
 Run `{BINARY_NAME} set-token <token>` to set the token,
