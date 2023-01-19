@@ -1,0 +1,2 @@
+#define canvas_sync_VERSION_MAJOR @canvas_sync_VERSION_MAJOR@
+#define canvas_sync_VERSION_MINOR @canvas_sync_VERSION_MINOR@
