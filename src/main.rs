@@ -66,6 +66,30 @@ impl<'a> Sync<'a> {
         Ok(Self { api, fm, download, course_id, remote_dir })
     }
 
+    /// Resolve all async tasks embedded in `tasks`.
+    /// `tasks` is a list of `Result` enums, each containing a list of
+    /// downloads and a list of updates.
+    ///
+    /// This function will wait for all downloads to finish, while
+    /// joining all updates into one list.
+    async fn parallel(
+        tasks: Vec<
+            Result<(Vec<impl Future<Output = Result<()>>>, Vec<Update>)>,
+        >,
+    ) -> Result<Vec<Update>> {
+        let a: Result<Vec<(Vec<_>, Vec<_>)>> = tasks.into_iter().collect();
+        let (downloads, updates): (Vec<_>, Vec<_>) = a?.into_iter().unzip();
+        let updates = updates.into_iter().flat_map(|v| v).collect::<Vec<_>>();
+        let downloads =
+            downloads.into_iter().flat_map(|v| v).collect::<Vec<_>>();
+        // fetch at most 5 `api.download()` in a row
+        let downloads = api::resolve(downloads, 5).await;
+        downloads.into_iter().collect::<Result<Vec<()>>>()?;
+        Ok(updates)
+    }
+
+    /// Terminal function of the `Sync` struct. Awaiting this will
+    /// result in the completion of all updates/downloads.
     async fn run(self) -> Result<Vec<Update>> {
         let folders: Vec<(u32, String)> = self
             .api
@@ -127,16 +151,8 @@ impl<'a> Sync<'a> {
                 Ok((downloads, updates))
             });
         // fetch at most 5 `api.files()` in a row
-        let a: Vec<Result<(Vec<_>, Vec<_>)>> = api::resolve(handles, 5).await;
-        let a: Result<Vec<(Vec<_>, Vec<_>)>> = a.into_iter().collect();
-        let (downloads, updates): (Vec<_>, Vec<_>) = a?.into_iter().unzip();
-        let updates = updates.into_iter().flat_map(|v| v).collect::<Vec<_>>();
-        let downloads =
-            downloads.into_iter().flat_map(|v| v).collect::<Vec<_>>();
-        // fetch at most 5 `api.download()` in a row
-        let results = api::resolve(downloads, 5).await;
-        let results: Result<()> = results.into_iter().collect();
-        results.map(|_| updates)
+        let tasks = api::resolve(handles, 5).await;
+        Sync::parallel(tasks).await
     }
 }
 
