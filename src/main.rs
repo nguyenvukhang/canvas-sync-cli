@@ -69,7 +69,6 @@ fn download_folder(
             let filename = f["filename"].to_str();
             let filename = normalize_filename(filename);
             let local_path = local_dir.join(&filename);
-            log::info!("{local_path:?}");
             match local_path.is_file() {
                 false => {
                     updates.push(Update {
@@ -96,43 +95,26 @@ async fn sync_folder(
         return Err(Error::DownloadNoParentDir(fm.local_dir()));
     }
     let course_id = fm.course_id()?;
-    let remote_path = fm.remote_path()?;
-    let local_dir = fm.local_dir();
-    let course_folders = api.course_folders(course_id).await?;
-    let mut folders = course_folders.to_value_vec();
-    let with_trailing_slash = format!("{remote_path}/");
-    folders.retain(|v| !v["id"].is_null() && !v["full_name"].is_null());
+    let tracked_remote_path = fm.remote_path()?;
 
-    let root = remote_path.is_empty();
-
-    // this is the case of the root folder
-    let folders: Vec<(u32, String)> = folders
-        .into_iter()
-        .filter_map(|v| {
-            let folder_id = v["id"].to_u32();
-            let rp = v["full_name"].to_str();
-            let rp = rp.strip_prefix("course files/")?;
-            if root {
-                return Some((folder_id, rp.to_string()));
-            }
-            if rp.eq(&remote_path) {
-                return Some((folder_id, "".to_string()));
-            }
-            if rp.starts_with(&with_trailing_slash) {
-                return Some((
-                    folder_id,
-                    (&rp[remote_path.len() + 1..]).to_string(),
-                ));
-            }
-            None
+    let folders: Vec<(u32, String)> = api
+        .course_folders(course_id)
+        .await?
+        .as_array()
+        .map(|f| {
+            f.iter()
+                .filter_map(|v| v.to_remote_folder(&tracked_remote_path))
+                .collect()
         })
-        .collect();
+        .unwrap_or_default();
 
     // Each list of folders should at least match the root folder
     if folders.is_empty() {
-        return Err(Error::InvalidTrackingUrl(fm.url().to_string()));
+        let url = fm.url().to_string();
+        return Err(Error::NoFoldersFoundInCourse { url });
     }
 
+    let local_dir = fm.local_dir();
     let handles = folders
         .into_iter()
         .map(|(id, rp)| (local_dir.join(&rp), id, rp))

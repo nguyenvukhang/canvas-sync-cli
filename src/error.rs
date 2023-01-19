@@ -13,6 +13,7 @@ pub enum Error {
     Debug(String),
     DownloadNoParentDir(PathBuf),
     InvalidTrackingUrl(String),
+    NoFoldersFoundInCourse { url: String },
     DownloadErr(String, reqwest::Error),
 
     // wrapped errors
@@ -52,6 +53,9 @@ fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
             p!("Failed to download from url {url}, {err}")
         }
         InvalidTrackingUrl(v) => p!("Invalid url: {v}"),
+        NoFoldersFoundInCourse { url } => {
+            p!("No folders found in course: {url}")
+        }
         DownloadNoParentDir(v) => {
             write!(
                 f,

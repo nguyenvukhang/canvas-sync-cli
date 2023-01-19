@@ -16,12 +16,17 @@ pub fn parse_url(mut url: &str) -> Result<(u32, String)> {
     if url.starts_with("canvas.nus.edu.sg/courses/") {
         url = &url[26..];
     }
-    let (id, folder) = url.split_once("/").ok_or(err())?;
+    let (id, mut folder) = url.split_once("/").ok_or(err())?;
     let id = id.parse::<u32>().map_err(|_| err())?;
-    if folder.eq("files") {
-        return Ok((id, "".to_string()));
+    if folder.starts_with("files") {
+        folder = &folder[5..];
     }
-    let folder = folder.strip_prefix("files/folder/").ok_or(err())?;
+    if folder.starts_with("/folder") {
+        folder = &folder[7..];
+    }
+    if folder.starts_with("/") {
+        folder = &folder[1..];
+    }
     if let Ok(decoded) = urlencoding::decode(folder) {
         return Ok((id, decoded.to_string()));
     }
