@@ -1,3 +1,5 @@
+use crate::error::Result;
+use futures::Future;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
@@ -65,6 +67,36 @@ impl EasyJson for Value {
         }
 
         None
+    }
+}
+
+pub trait DownloadJson<T: Future<Output = Result<()>>> {
+    fn to_download_future(&self) -> Vec<T>;
+}
+
+impl<T: Future<Output = Result<()>>> DownloadJson<T> for Value {
+    fn to_download_future(&self) -> Vec<T> {
+        vec![]
+
+        // let downloads = files
+        //     .into_iter()
+        //     .filter_map(|f| {
+        //         let filename = f["filename"].to_str();
+        //         let filename = normalize_filename(filename);
+        //         let local_path = local_dir.join(&filename);
+        //         match local_path.is_file() {
+        //             false => {
+        //                 updates.push(Update {
+        //                     course_id,
+        //                     remote_path: remote_path.join(&filename),
+        //                 });
+        //                 Some((local_path, f["url"].to_str().to_string()))
+        //             }
+        //             true => None,
+        //         }
+        //     })
+        //     .filter(|_| download)
+        //     .map(|(local_path, url)| api.clone().download(url, local_path));
     }
 }
 
