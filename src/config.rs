@@ -11,7 +11,7 @@ const CONFIG_NAME: &str = "config";
 pub struct Config {
     access_token: String,
     base_path: Option<String>,
-    #[serde(alias = "folders")]
+    #[serde(rename(serialize = "folders", deserialize = "folders"))]
     folder_maps: Vec<FolderMap>,
     #[serde(skip_deserializing)]
     config_path: String,
