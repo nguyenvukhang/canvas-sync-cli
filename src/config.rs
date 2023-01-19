@@ -10,6 +10,7 @@ const CONFIG_NAME: &str = "config";
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Config {
     access_token: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     base_path: Option<String>,
     #[serde(rename = "folders")]
     folder_maps: Vec<FolderMap>,
@@ -61,6 +62,7 @@ impl Config {
 
     /// Saves the current state of canvas-sync config
     pub fn save(&self) -> Result<()> {
+        log::info!("saving config: {self:?}");
         confy::store(BINARY_NAME, Some(CONFIG_NAME), self).map_err(|e| e.into())
     }
 

@@ -1,4 +1,9 @@
 #!/usr/bin/env sh
 
-cargo build || exit 1
-./target/debug/canvas-sync $@
+main() {
+  local BIN=./target/debug/canvas-sync
+  cargo build || exit 1
+  RUST_LOG=canvas_sync=debug $BIN $@
+}
+
+main $@
