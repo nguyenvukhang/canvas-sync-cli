@@ -48,36 +48,6 @@ pub struct App {
     args: Args,
 }
 
-fn download_folder(
-    api: &Api,
-    course_id: u32,
-    remote_path: String,
-    files: Vec<serde_json::Value>,
-    local_dir: PathBuf,
-    download: bool,
-) -> Result<(Vec<impl Future<Output = Result<()>>>, Vec<Update>)> {
-    let local_dir = local_dir.to_path_buf();
-    if download {
-        std::fs::create_dir_all(&local_dir)?;
-    }
-    let remote_path = PathBuf::from(remote_path);
-    let (downloads, updates): (Vec<_>, Vec<_>) = files
-        .into_iter()
-        .filter_map(|f| {
-            let filename = f.to_normalized_filename()?;
-            let local_path = local_dir.join(&filename);
-            let url = f["url"].to_str().to_string();
-            let download = (download && !local_path.is_file())
-                .then(|| api.clone().download(url, local_path));
-            let update =
-                Update { course_id, remote_path: remote_path.join(&filename) };
-            Some((download, update))
-        })
-        .unzip();
-    let downloads = downloads.into_iter().filter_map(|v| v).collect();
-    Ok((downloads, updates))
-}
-
 /// Runs a full sync on a folder
 async fn sync_folder(
     api: &Api,
@@ -110,17 +80,43 @@ async fn sync_folder(
     let local_dir = fm.local_dir();
     let handles = folders
         .into_iter()
-        .map(|(id, rp)| (local_dir.join(&rp), id, rp))
+        .map(|(id, rp)| (local_dir.join(&rp), id, PathBuf::from(rp)))
         .map(|(local_dir, folder_id, remote_path)| async move {
             let files = api.files(folder_id).await?.to_value_vec();
-            download_folder(
-                api,
-                course_id,
-                remote_path,
-                files,
-                local_dir,
-                download,
-            )
+            if download {
+                std::fs::create_dir_all(&local_dir)?;
+            }
+            let files = files
+                .into_iter()
+                .filter_map(|f| {
+                    let url = f["url"].as_str()?.to_string();
+                    let filename = f.to_normalized_filename()?;
+                    Some((url, filename))
+                })
+                .collect::<Vec<_>>();
+
+            let updates = files
+                .iter()
+                .map(|(_, filename)| Update {
+                    course_id,
+                    remote_path: remote_path.join(&filename),
+                })
+                .collect();
+
+            if !download {
+                return Ok((vec![], updates));
+            }
+
+            let downloads = files
+                .into_iter()
+                .filter_map(|(url, filename)| {
+                    let local_path = local_dir.join(&filename);
+                    (!local_path.is_file())
+                        .then(|| api.clone().download(url, local_path))
+                })
+                .collect();
+
+            Ok((downloads, updates))
         });
     // fetch at most 5 `api.files()` in a row
     let a: Vec<Result<(Vec<_>, Vec<_>)>> = api::resolve(handles, 5).await;
