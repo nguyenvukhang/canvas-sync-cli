@@ -8,6 +8,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     EmptyToken,
     InvalidToken,
+    UnableToGetConfigPath,
     DownloadNoParentDir(PathBuf),
     InvalidTrackingUrl(String),
     DownloadErr(String, reqwest::Error),
@@ -42,6 +43,7 @@ fn display(err: &Error, f: &mut fmt::Formatter) -> fmt::Result {
         InvalidToken => {
             p!("{}", token_instructions("Invalid access token."))
         }
+        UnableToGetConfigPath => p!("Unable to get config path."),
         DownloadErr(url, err) => {
             p!("Failed to download from url {url}, {err}")
         }

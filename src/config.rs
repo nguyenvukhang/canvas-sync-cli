@@ -2,7 +2,7 @@ use crate::error::{Error, Result};
 use crate::types::FolderMap;
 use crate::BINARY_NAME;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const CONFIG_NAME: &str = "config";
 
@@ -24,8 +24,7 @@ impl Config {
     where
         P: AsRef<Path>,
     {
-        let cfg_path =
-            confy::get_configuration_file_path(BINARY_NAME, Some(CONFIG_NAME))?;
+        let cfg_path = Self::path()?;
         if !cfg_path.is_file() {
             println!(
                 "New config file created at\n'{}'\n",
@@ -52,8 +51,9 @@ impl Config {
         Ok(config)
     }
 
-    pub fn path(&self) -> &str {
-        &self.config_path
+    pub fn path() -> Result<PathBuf> {
+        confy::get_configuration_file_path(BINARY_NAME, Some(CONFIG_NAME))
+            .map_err(|_| Error::UnableToGetConfigPath)
     }
 
     pub fn set_token(&mut self, token: &str) {

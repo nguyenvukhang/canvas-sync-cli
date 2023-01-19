@@ -183,13 +183,7 @@ New token set! Try running `{BINARY_NAME}` to verify it.
                 Ok(())
             }
             C::Config => {
-                let config = Config::load(cfg_path, false)?;
-                let path = config.path();
-                if path.contains(' ') {
-                    println!("\"{path}\"");
-                } else {
-                    println!("{path}");
-                }
+                println!("{}", Config::path()?.to_string_lossy());
                 Ok(())
             }
             C::Pull => self.update(true).await,
