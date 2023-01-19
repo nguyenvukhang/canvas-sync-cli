@@ -91,19 +91,16 @@ impl<'a> Sync<'a> {
     /// Terminal function of the `Sync` struct. Awaiting this will
     /// result in the completion of all updates/downloads.
     async fn run(self) -> Result<Vec<Update>> {
-        let folders: Vec<(u32, String)> = self
-            .api
-            .course_folders(self.course_id)
-            .await?
+        let folders = self.api.course_folders(self.course_id).await?;
+        let folders: Vec<(u32, String)> = folders
             .as_array()
-            .map(|f| {
-                f.iter()
-                    .filter_map(|v| v.to_remote_folder(&self.remote_dir))
-                    .collect()
-            })
-            .unwrap_or_default();
+            .ok_or(Error::NoFoldersFoundInCourse {
+                url: self.fm.url().to_string(),
+            })?
+            .into_iter()
+            .filter_map(|v| v.to_remote_folder(&self.remote_dir))
+            .collect();
 
-        // Each list of folders should at least match the root folder
         if folders.is_empty() {
             let url = self.fm.url().to_string();
             return Err(Error::NoFoldersFoundInCourse { url });
