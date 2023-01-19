@@ -48,86 +48,96 @@ pub struct App {
     args: Args,
 }
 
-/// Runs a full sync on a folder
-async fn sync_folder(
-    api: &Api,
-    fm: &FolderMap,
+struct Sync<'a> {
+    api: &'a Api,
+    fm: &'a FolderMap,
+    course_id: u32,
+    remote_dir: String,
     download: bool,
-) -> Result<Vec<Update>> {
-    if !fm.parent_exists() {
-        return Err(Error::DownloadNoParentDir(fm.local_dir()));
-    }
-    let course_id = fm.course_id()?;
-    let tracked_remote_dir = fm.remote_dir()?;
+}
 
-    let folders: Vec<(u32, String)> = api
-        .course_folders(course_id)
-        .await?
-        .as_array()
-        .map(|f| {
-            f.iter()
-                .filter_map(|v| v.to_remote_folder(&tracked_remote_dir))
-                .collect()
-        })
-        .unwrap_or_default();
-
-    // Each list of folders should at least match the root folder
-    if folders.is_empty() {
-        let url = fm.url().to_string();
-        return Err(Error::NoFoldersFoundInCourse { url });
+impl<'a> Sync<'a> {
+    fn new(api: &'a Api, fm: &'a FolderMap, download: bool) -> Result<Self> {
+        if !fm.parent_exists() {
+            return Err(Error::DownloadNoParentDir(fm.local_dir()));
+        }
+        let course_id = fm.course_id()?;
+        let remote_dir = fm.remote_dir()?;
+        Ok(Self { api, fm, download, course_id, remote_dir })
     }
 
-    let local_dir = fm.local_dir();
-    let handles = folders
-        .into_iter()
-        .map(|(id, rd)| (local_dir.join(&rd), id, PathBuf::from(rd)))
-        .map(|(local_dir, folder_id, remote_dir)| async move {
-            let files = api.files(folder_id).await?.to_value_vec();
-            if download {
-                std::fs::create_dir_all(&local_dir)?;
-            }
-            let files = files
-                .into_iter()
-                .filter_map(|f| {
-                    let url = f["url"].as_str()?.to_string();
-                    let filename = f.to_normalized_filename()?;
-                    Some((url, filename))
-                })
-                .collect::<Vec<_>>();
+    async fn run(self) -> Result<Vec<Update>> {
+        let folders: Vec<(u32, String)> = self
+            .api
+            .course_folders(self.course_id)
+            .await?
+            .as_array()
+            .map(|f| {
+                f.iter()
+                    .filter_map(|v| v.to_remote_folder(&self.remote_dir))
+                    .collect()
+            })
+            .unwrap_or_default();
 
-            let updates = files
-                .iter()
-                .map(|(_, filename)| Update {
-                    course_id,
-                    remote_path: remote_dir.join(&filename),
-                })
-                .collect();
+        // Each list of folders should at least match the root folder
+        if folders.is_empty() {
+            let url = self.fm.url().to_string();
+            return Err(Error::NoFoldersFoundInCourse { url });
+        }
 
-            if !download {
-                return Ok((vec![], updates));
-            }
+        let local_dir = self.fm.local_dir();
+        let handles = folders
+            .into_iter()
+            .map(|(id, rd)| (local_dir.join(&rd), id, PathBuf::from(rd)))
+            .map(|(local_dir, folder_id, remote_dir)| async move {
+                let files = self.api.files(folder_id).await?.to_value_vec();
+                if self.download {
+                    std::fs::create_dir_all(&local_dir)?;
+                }
+                let files = files
+                    .into_iter()
+                    .filter_map(|f| {
+                        let url = f["url"].as_str()?.to_string();
+                        let filename = f.to_normalized_filename()?;
+                        Some((url, filename))
+                    })
+                    .collect::<Vec<_>>();
 
-            let downloads = files
-                .into_iter()
-                .filter_map(|(url, filename)| {
-                    let local_path = local_dir.join(&filename);
-                    (!local_path.is_file())
-                        .then(|| api.clone().download(url, local_path))
-                })
-                .collect();
+                let updates = files
+                    .iter()
+                    .map(|(_, filename)| Update {
+                        course_id: self.course_id,
+                        remote_path: remote_dir.join(&filename),
+                    })
+                    .collect();
 
-            Ok((downloads, updates))
-        });
-    // fetch at most 5 `api.files()` in a row
-    let a: Vec<Result<(Vec<_>, Vec<_>)>> = api::resolve(handles, 5).await;
-    let a: Result<Vec<(Vec<_>, Vec<_>)>> = a.into_iter().collect();
-    let (downloads, updates): (Vec<_>, Vec<_>) = a?.into_iter().unzip();
-    let updates = updates.into_iter().flat_map(|v| v).collect::<Vec<_>>();
-    let downloads = downloads.into_iter().flat_map(|v| v).collect::<Vec<_>>();
-    // fetch at most 5 `api.download()` in a row
-    let results = api::resolve(downloads, 5).await;
-    let results: Result<()> = results.into_iter().collect();
-    results.map(|_| updates)
+                if !self.download {
+                    return Ok((vec![], updates));
+                }
+
+                let downloads = files
+                    .into_iter()
+                    .filter_map(|(url, filename)| {
+                        let local_path = local_dir.join(&filename);
+                        (!local_path.is_file())
+                            .then(|| self.api.clone().download(url, local_path))
+                    })
+                    .collect();
+
+                Ok((downloads, updates))
+            });
+        // fetch at most 5 `api.files()` in a row
+        let a: Vec<Result<(Vec<_>, Vec<_>)>> = api::resolve(handles, 5).await;
+        let a: Result<Vec<(Vec<_>, Vec<_>)>> = a.into_iter().collect();
+        let (downloads, updates): (Vec<_>, Vec<_>) = a?.into_iter().unzip();
+        let updates = updates.into_iter().flat_map(|v| v).collect::<Vec<_>>();
+        let downloads =
+            downloads.into_iter().flat_map(|v| v).collect::<Vec<_>>();
+        // fetch at most 5 `api.download()` in a row
+        let results = api::resolve(downloads, 5).await;
+        let results: Result<()> = results.into_iter().collect();
+        results.map(|_| updates)
+    }
 }
 
 impl App {
@@ -186,14 +196,15 @@ New token set! Try running `{BINARY_NAME}` to verify it.
         let cfg_path = self.args.config_path.as_ref();
         let config = Config::load(cfg_path, true)?;
         let api = Api::new(config.access_token());
-        let result = config
+        let syncers = config
             .folder_maps()
             .iter()
-            .map(|fm| sync_folder(&api, fm, download))
-            .collect::<Vec<_>>();
-        println!("Syncing {} folders...", result.len());
+            .map(|fm| Sync::new(&api, fm, download))
+            .collect::<Result<Vec<_>>>()?;
+        let results = syncers.into_iter().map(|v| v.run()).collect::<Vec<_>>();
+        println!("Syncing {} folders...", results.len());
         // sync at most 5 folders at a time.
-        let loloupdates = api::resolve(result, 5).await;
+        let loloupdates = api::resolve(results, 5).await;
         let mut updates: Vec<Update> = loloupdates
             .into_iter()
             .collect::<Result<Vec<_>>>()?
