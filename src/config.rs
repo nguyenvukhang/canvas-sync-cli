@@ -25,7 +25,7 @@ impl Config {
         P: AsRef<Path>,
     {
         let cfg_path = Self::path()?;
-        if !cfg_path.is_file() {
+        if let Ok(false) = cfg_path.try_exists() {
             println!(
                 "New config file created at\n'{}'\n",
                 cfg_path.to_string_lossy()
