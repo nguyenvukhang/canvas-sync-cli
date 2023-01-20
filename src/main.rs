@@ -16,7 +16,7 @@ use clap::{Parser, Subcommand};
 
 use std::process::Command;
 
-// const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
+const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 pub const BINARY_NAME: &str = "canvas-sync";
 
 #[derive(Parser, Debug)]
@@ -27,6 +27,9 @@ pub struct Args {
 
     /// Points to a .yml file
     config_path: Option<String>,
+
+    #[arg(short, long)]
+    version: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -56,6 +59,10 @@ impl App {
 
     /// Main entry point
     pub async fn run(&self) -> Result<()> {
+        if self.args.version {
+            println!("{BINARY_NAME} {}", VERSION.unwrap_or("unknown"));
+            return Ok(())
+        }
         let cfg_path = self.args.config_path.as_ref();
         let command = match &self.args.command {
             Some(v) => v,
