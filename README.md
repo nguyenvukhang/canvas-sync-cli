@@ -34,9 +34,9 @@ If it doesn't exist, then create it and fill it in with this template:
 access_token: a_very_secret_value
 base_path: /path/to/your/base # optional
 folders:
-  - url: "https://canvas.nus.edu.sg/courses/12345/files/folder/Lecture%20Notes"
+  - url: https://canvas.nus.edu.sg/courses/12345/files/folder/Lecture%20Notes
     path: MA2101/lec
-  - url: "https://canvas.nus.edu.sg/courses/98765/files/folder/Tutorials"
+  - url: https://canvas.nus.edu.sg/courses/98765/files/folder/Tutorials
     path: MA2104/tut
 ```
 
