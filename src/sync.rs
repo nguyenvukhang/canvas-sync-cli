@@ -1,10 +1,11 @@
-use crate::api::{self, Api};
+use crate::api::Api;
 use crate::error::{Error, Result};
 use crate::traits::*;
 use crate::types::{FolderMap, Update};
 
 use futures::future::try_join_all;
-use futures::FutureExt;
+use futures::{FutureExt, StreamExt};
+use serde_json::Value;
 
 use std::collections::HashMap;
 use std::mem;
@@ -32,11 +33,50 @@ impl<'a> Sync<'a> {
         Ok(Self { api, fm, download, course_id, remote_dir })
     }
 
+    /// Get updates contained within a folder
+    fn get_folder_updates(
+        &self,
+        folder_files: Result<(String, Value)>,
+        local_dir: &Path,
+    ) -> Result<Vec<Update>> {
+        match folder_files {
+            Err(e) => Err(e),
+            Ok((remote_path, files)) => {
+                let files =
+                    files.as_array().ok_or(Error::NoFoldersFoundInCourse {
+                        url: self.fm.url().to_string(),
+                    })?;
+                let remote_path = Path::new(&remote_path);
+                let updates: Vec<Update> = files
+                    .into_iter()
+                    .filter_map(|f| {
+                        let url = f["url"].as_str()?.to_string();
+                        let filename = f.to_normalized_filename()?;
+                        let final_dir = local_dir.join(&remote_path);
+                        let target_file = final_dir.join(&filename);
+                        let has = target_file.is_file();
+                        let get = self.download && !has;
+                        if get {
+                            std::fs::create_dir_all(&final_dir).ok();
+                        }
+                        (!has).then(|| {
+                            Update::new(
+                                self.course_id,
+                                remote_path.join(&filename),
+                                get.then(|| (url, target_file)),
+                            )
+                        })
+                    })
+                    .collect();
+                Ok(updates)
+            }
+        }
+    }
+
     /// Terminal function of the `Sync` struct. Returns a list of all
     /// downloadables (url -> local path) pairs, and a list of all
     /// updates found.
     pub async fn get_updates(self) -> Result<Vec<Update>> {
-        let course_id = self.course_id;
         let folders = self.api.course_folders(self.course_id).await?;
         let folders: Vec<(u32, String)> = folders
             .as_array()
@@ -59,49 +99,14 @@ impl<'a> Sync<'a> {
                     .map(move |files| files.map(|f| (remote_path, f)))
                     .await
             });
-        let folders = api::resolve(futures, 10).await;
-        let folders = folders.into_iter().collect::<Result<Vec<_>>>()?;
 
         let local_dir = self.fm.local_dir();
-
-        // Parse a `Vec` out of the JSON within `files`
-        let folders = folders.into_iter().map(|(remote_path, files)| {
-            let files = match files.as_array() {
-                Some(v) => v,
-                None => {
-                    let err = Error::NoFoldersFoundInCourse {
-                        url: self.fm.url().to_string(),
-                    };
-                    return Err(err);
-                }
-            };
-            let remote_path = Path::new(&remote_path);
-            let updates: Vec<Update> = files
-                .into_iter()
-                .filter_map(|f| {
-                    let url = f["url"].as_str()?.to_string();
-                    let filename = f.to_normalized_filename()?;
-                    let final_dir = local_dir.join(&remote_path);
-                    let target_file = final_dir.join(&filename);
-                    let has = target_file.is_file();
-                    let get = self.download && !has;
-                    if get {
-                        std::fs::create_dir_all(&final_dir).ok();
-                    }
-                    (!has).then(|| {
-                        Update::new(
-                            course_id,
-                            remote_path.join(&filename),
-                            get.then(|| (url, target_file)),
-                        )
-                    })
-                })
-                .collect();
-            Ok(updates)
-        });
-
-        let folders: Result<Vec<Vec<_>>> = folders.collect();
-        Ok(folders?.into_iter().flatten().collect())
+        let loloupdates = futures::stream::iter(futures)
+            .buffer_unordered(10)
+            .map(|files| self.get_folder_updates(files, &local_dir));
+        let t: Vec<Result<Vec<Update>>> = loloupdates.collect::<Vec<_>>().await;
+        let t: Result<Vec<Vec<_>>> = t.into_iter().collect();
+        Ok(t?.into_iter().flatten().collect())
     }
 
     pub async fn run(
