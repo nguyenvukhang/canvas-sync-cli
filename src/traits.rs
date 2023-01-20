@@ -56,9 +56,12 @@ impl EasyJson for Value {
         let full_path = self["full_name"].as_str()?;
         let remote_dir = full_path.strip_prefix("course files/")?;
 
-        if remote_dir.eq(t) || tracked_remote_dir.is_empty() {
-            let remote_dir = remote_dir.to_string();
-            return Some((folder_id, remote_dir));
+        if tracked_remote_dir.is_empty() {
+            return Some((folder_id, remote_dir.to_string()));
+        }
+
+        if remote_dir.eq(t) {
+            return Some((folder_id, "".to_string()));
         }
 
         if remote_dir.starts_with(t) && remote_dir[t.len()..].starts_with('/') {

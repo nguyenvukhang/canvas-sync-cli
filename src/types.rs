@@ -1,53 +1,27 @@
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::string::parse_url;
 use crate::traits::*;
 use crate::BINARY_NAME;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-
-/// Thread-safe queue
-pub struct Tsq<T> {
-    db: Arc<Mutex<Vec<T>>>,
-}
-
-impl<T> Tsq<T> {
-    pub fn new() -> Self {
-        Self { db: Arc::new(Mutex::new(vec![])) }
-    }
-
-    pub fn push(&self, e: T) {
-        let mut db = self.db.lock().unwrap();
-        db.push(e);
-    }
-
-    pub fn get_ref(&self) -> Self {
-        Self { db: Arc::clone(&self.db) }
-    }
-
-    pub fn len(&self) -> usize {
-        self.db.lock().unwrap().len()
-    }
-
-    pub fn extract(self) -> Result<Vec<T>> {
-        let arc = Arc::try_unwrap(self.db)
-            .map_err(|_| Error::of("Can't unwrap Arc"))?;
-        let db =
-            arc.into_inner().map_err(|_| Error::of("Can't unwrap Mutex"))?;
-        Ok(db)
-    }
-}
 
 #[derive(Debug)]
 pub struct Update {
     pub course_id: u32,
+    /// PathBuf because it needs to be `remote_dir.join(&filename)`
     pub remote_path: PathBuf,
+    /// url -> download destination file
+    pub download: Option<(String, PathBuf)>,
 }
 
-#[derive(Debug)]
-pub struct Download {
-    pub url: String,
-    pub local_path: PathBuf,
+impl Update {
+    pub fn new(
+        course_id: u32,
+        remote_path: PathBuf,
+        download: Option<(String, PathBuf)>,
+    ) -> Self {
+        Self { course_id, remote_path, download }
+    }
 }
 
 /// Serializable folder map
