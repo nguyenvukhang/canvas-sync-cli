@@ -9,6 +9,7 @@ add_executable(canvas_sync
   main.cpp
   errors.cpp
   canvas_api.cpp
+  filetree.cpp
   types.cpp)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)

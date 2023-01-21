@@ -41,9 +41,9 @@ public:
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(File, id, folder_id, filename, url);
 
-void debug(Profile *p);
-void debug(Course *c);
-void debug(Folder *c);
-void debug(File *c);
+void debug(Profile *);
+void debug(Course *);
+void debug(Folder *);
+void debug(File *);
 
 #endif
