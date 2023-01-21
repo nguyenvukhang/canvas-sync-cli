@@ -5,6 +5,7 @@
 class CanvasApi {
 private:
   std::string token;
+  std::string base_url = "https://canvas.nus.edu.sg";
   httplib::Result get(const char *url);
   httplib::Client cli();
 

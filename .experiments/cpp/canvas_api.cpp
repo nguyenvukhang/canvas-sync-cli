@@ -28,12 +28,13 @@ httplib::Result CanvasApi::get(const char *url) {
   }
   auto err = res.error();
   std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+  std::cout << "Url used: " << this->base_url << url << std::endl;
   panic("Failed network request.");
   return res;
 }
 
 httplib::Client CanvasApi::cli() {
-  httplib::Client cli("https://canvas.nus.edu.sg");
+  httplib::Client cli(this->base_url);
   cli.set_bearer_token_auth(this->token);
   return cli;
 }
