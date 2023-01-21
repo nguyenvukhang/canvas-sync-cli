@@ -43,6 +43,9 @@ int main(int argc, char **argv) {
 
   tree.insert_folders(folders);
   debug(&tree);
+  string s = tree.to_string();
+  cout << "-------------------------------------" << endl;
+  cout << s << endl;
 
   return 0;
 }

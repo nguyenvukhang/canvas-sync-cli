@@ -22,5 +22,6 @@ void debug(Course *c) {
 }
 void debug(File *c) { eprintln("File { %d, %s }", c->id, c->filename.c_str()); }
 void debug(Folder *c) {
-  eprintln("Folder { %d, %s }", c->id, c->full_name.c_str());
+  eprintln("Folder { %d, %s, (%s) }", c->id, c->full_name.c_str(),
+           c->name.c_str());
 }

@@ -1,5 +1,6 @@
 #include "filetree.h"
 #include <algorithm>
+#include <string>
 
 void debug_filetree(FileTree *t, int level) {
   string indent = string(2 * (level + 1), ' ');
@@ -41,6 +42,20 @@ void FileTree::insert_folder(Folder *f, string state) {
     this->folders[i].insert_folder(f, state.substr(slash_idx + 1));
     break;
   }
+}
+
+void FileTree::to_string(string *state) {
+  *state += "{(" + std::to_string(this->id) + ',' + this->name + "):";
+  for (auto nested : this->folders) {
+    nested.to_string(state);
+  }
+  *state += '}';
+}
+
+string FileTree::to_string() {
+  string state = "";
+  this->to_string(&state);
+  return state;
 }
 
 void FileTree::insert_folder(Folder *f) {

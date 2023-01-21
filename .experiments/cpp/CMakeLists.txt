@@ -32,7 +32,9 @@ configure_file(main.h.in main.h)
 
 # link GoogleTest -> cs_test
 enable_testing()
-add_executable(cs_test filetree_test.cc)
+add_executable(cs_test
+  filetree.cc filetree_test.cc
+  types.cc)
 target_link_libraries(cs_test GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(cs_test)

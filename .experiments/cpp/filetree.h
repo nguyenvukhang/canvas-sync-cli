@@ -8,7 +8,9 @@ using namespace std;
 
 class FileTree {
 private:
-  void insert_folder(Folder *, string); // for recursion with the public one
+  // for recursion with the public variant
+  void insert_folder(Folder *, string);
+  void to_string(string *);
 
 public:
   int id;
@@ -18,6 +20,7 @@ public:
   void insert_folder(Folder *);
   void insert_folders(vector<Folder>);
   void insert_file(File *);
+  string to_string();
 };
 void debug(FileTree *);
 

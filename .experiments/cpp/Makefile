@@ -33,7 +33,7 @@ run_prg:
 
 # run the tests binary
 run_tests:
-	@cd $(MAKEFILE_DIR)/build && ctest
+	@cd $(MAKEFILE_DIR)/build && GTEST_COLOR=1 ctest --output-on-failure
 
 # run the binary through the `lldb` debugger
 debug_prg:
