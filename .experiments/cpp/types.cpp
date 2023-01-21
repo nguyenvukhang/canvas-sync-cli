@@ -22,3 +22,8 @@ void debug(Course *c) {
   eprintln("* id:         %d", c->id);
   eprintln("* name:       %s", c->name.c_str());
 }
+void debug(vector<Course> *v) {
+  for (Course c : *v) {
+    debug(&c);
+  }
+}

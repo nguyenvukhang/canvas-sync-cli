@@ -27,5 +27,6 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Course, id, name);
 void debug();
 void debug(Profile *p);
 void debug(Course *c);
+void debug(vector<Course> *c);
 
 #endif

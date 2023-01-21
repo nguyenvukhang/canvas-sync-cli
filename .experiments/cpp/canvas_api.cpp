@@ -14,23 +14,19 @@ CanvasApi::CanvasApi() {
 }
 
 Profile CanvasApi::profile() {
-  Result res = this->get("/api/v1/users/self/profile");
-  json j = json::parse(res->body);
-  Profile p = j.get<Profile>();
-  std::cout << res->body << std::endl;
-  return p;
+  return this->get_json("/api/v1/users/self/profile").get<Profile>();
 }
 
 vector<Course> CanvasApi::courses() {
-  Result res = this->get("/api/v1/users/self/courses?per_page=118");
-  json j = json::parse(res->body);
+  json j = this->get_json("/api/v1/users/self/courses?per_page=118");
   vector<Course> courses;
   for (json::iterator it = j.begin(); it != j.end(); ++it) {
     try {
-      Course c = it->get<Course>();
-      courses.push_back(c);
+      courses.push_back(it->get<Course>());
     } catch (json::exception) {
-      // simply don't parse invalid courses
+      // Simply don't parse invalid courses.
+      // These are very real and happen when lecturers/profs want to
+      // sandbox some modules and also happen to add you in them.
     }
   }
   return courses;
@@ -46,6 +42,10 @@ Result CanvasApi::get(const char *url) {
   std::cout << "Url used: " << this->base_url << url << std::endl;
   panic("Failed network request.");
   return res;
+}
+
+json CanvasApi::get_json(const char *url) {
+  return json::parse(this->get(url)->body);
 }
 
 Client CanvasApi::cli() {

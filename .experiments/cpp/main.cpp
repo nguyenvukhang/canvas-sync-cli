@@ -24,11 +24,10 @@ void version(char *bin_name) {
 
 int main(int argc, char **argv) {
   CanvasApi *api = new CanvasApi();
-  Profile p = api->profile();
+  Profile profile = api->profile();
   vector<Course> courses = api->courses();
-  for (Course c : courses)
-    debug(&c);
-  debug(&p);
+  debug(&courses);
+  debug(&profile);
 
   return 0;
 }

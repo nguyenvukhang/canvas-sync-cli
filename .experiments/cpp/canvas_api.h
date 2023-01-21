@@ -11,6 +11,7 @@ private:
   string token;
   string base_url = "https://canvas.nus.edu.sg";
   httplib::Result get(const char *url);
+  nlohmann::json get_json(const char *url);
   httplib::Client cli();
 
 public:
