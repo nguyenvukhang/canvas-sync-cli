@@ -19,6 +19,8 @@ public:
   CanvasApi(const char *token) { this->token = token; };
   Profile profile();
   vector<Course> courses();
+  vector<Folder> course_folders(const int *course_id);
+  vector<File> course_files(const int *course_id);
   void print_token() { std::cerr << this->token << std::endl; }
 };
 

@@ -8,7 +8,6 @@ void eprintln(const char *fmt, ...) {
   std::cerr << std::endl;
 }
 
-void debug() { std::cerr << "Debugging nothing." << std::endl; }
 void debug(Profile *p) {
   eprintln("Profile");
   eprintln("* id:         %d", p->id);
@@ -19,11 +18,10 @@ void debug(Profile *p) {
 }
 void debug(Course *c) {
   eprintln("Course");
-  eprintln("* id:         %d", c->id);
-  eprintln("* name:       %s", c->name.c_str());
+  eprintln("* id:   %d", c->id);
+  eprintln("* name: %s", c->name.c_str());
 }
-void debug(vector<Course> *v) {
-  for (Course c : *v) {
-    debug(&c);
-  }
+void debug(File *c) { eprintln("File { %d, %s }", c->id, c->filename.c_str()); }
+void debug(Folder *c) {
+  eprintln("Folder { %d, %s }", c->id, c->full_name.c_str());
 }

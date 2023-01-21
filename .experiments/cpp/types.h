@@ -24,9 +24,26 @@ public:
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Course, id, name);
 
-void debug();
+class Folder {
+public:
+  int id;
+  string name;
+  string full_name;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Folder, id, name, full_name);
+
+class File {
+public:
+  int id;
+  int folder_id;
+  string filename;
+  string url;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(File, id, folder_id, filename, url);
+
 void debug(Profile *p);
 void debug(Course *c);
-void debug(vector<Course> *c);
+void debug(Folder *c);
+void debug(File *c);
 
 #endif
