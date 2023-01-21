@@ -24,6 +24,8 @@ void version(char *bin_name) {
 
 int main(int argc, char **argv) {
   CanvasApi *api = new CanvasApi();
-  api->profile();
+  Profile p = api->profile();
+  debug(&p);
+
   return 0;
 }
