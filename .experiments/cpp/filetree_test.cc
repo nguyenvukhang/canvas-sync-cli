@@ -15,14 +15,12 @@ protected:
   }
   // create a tree from the list of folders
   FileTree t(Folder *f, int arr_len) {
-    FileTree tree;
-    tree.id = 0;
-    tree.name = "root";
+    FileTree *tree = new FileTree(0, "root");
     vector<Folder> folders;
     for (int i = 0; i < arr_len; i++)
       folders.push_back(f[i]);
-    tree.insert_folders(folders);
-    return tree;
+    tree->insert_folders(folders);
+    return *tree;
   }
 };
 

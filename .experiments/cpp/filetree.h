@@ -9,16 +9,21 @@ using namespace std;
 class FileTree {
 private:
   // for recursion with the public variant
-  void insert_folder(Folder *, string);
+  void insert_tree(FileTree *, string);
   void to_string(string *);
 
 public:
+  FileTree(const int, const char *);
+  FileTree(const int, const string);
+  FileTree(Folder *);
+  FileTree(Course *);
   int id;
   string name;
   vector<FileTree> folders;
   vector<File> files;
   void insert_folder(Folder *);
   void insert_folders(vector<Folder>);
+  void insert_tree(FileTree *);
   void insert_file(File *);
   string to_string();
 };

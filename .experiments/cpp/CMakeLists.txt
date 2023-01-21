@@ -35,6 +35,6 @@ enable_testing()
 add_executable(cs_test
   filetree.cc filetree_test.cc
   types.cc)
-target_link_libraries(cs_test GTest::gtest_main)
+target_link_libraries(cs_test GTest::gtest_main GTest::gmock_main)
 include(GoogleTest)
 gtest_discover_tests(cs_test)
