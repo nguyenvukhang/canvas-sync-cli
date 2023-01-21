@@ -1,6 +1,6 @@
 #include "main.h"
+#include "canvas_api.h"
 #include "errors.h"
-#include "httplib.h"
 #include "rust.h"
 
 #include <cstdlib>
@@ -37,14 +37,10 @@ void version(char *bin_name) {
             << canvas_sync_VERSION_MINOR << std::endl;
 }
 
-// https://www.nguyenvukhang.com/api/nus
-
 int main(int argc, char **argv) {
-  const char *token = env_or_throw("CANVAS_TOKEN");
-
-  Folder *f = new_folder(123, "CS2040");
-  debug_folder(f);
-
-  std::cout << "Canvas token: " << token << std::endl;
+  // CanvasApi *api = new CanvasApi("HELLO");
+  CanvasApi *api = new CanvasApi(env_or_throw("CANVAS_TOKEN"));
+  api->profile();
+  // api->print_token();
   return 0;
 }
