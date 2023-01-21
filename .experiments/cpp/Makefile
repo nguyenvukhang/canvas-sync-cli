@@ -17,10 +17,7 @@ develop:
 	@make save_config
 
 build:
-	@mkdir -p $(MAKEFILE_DIR)/build # create build directory
-	@cmake \
-		-B $(MAKEFILE_DIR)/build -S $(MAKEFILE_DIR) \
-		$(CMAKE_FLAGS)
+	@cmake -B $(MAKEFILE_DIR)/build -S $(MAKEFILE_DIR) $(CMAKE_FLAGS)
 	@cmake --build $(MAKEFILE_DIR)/build # run the build
 
 # save the build command for LSP use
