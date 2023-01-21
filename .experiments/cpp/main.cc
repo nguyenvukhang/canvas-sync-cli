@@ -4,6 +4,8 @@
 #include "filetree.h"
 #include "types.h"
 #include <algorithm>
+#include <future>
+#include <thread>
 
 using json = nlohmann::json;
 
@@ -12,7 +14,7 @@ void version(char *bin_name) {
             << canvas_sync_VERSION_MINOR << std::endl;
 }
 
-int main(int argc, char **argv) {
+int stable() {
   CanvasApi *api = new CanvasApi();
   // Profile profile = api->profile();
   // debug(&profile);
@@ -30,5 +32,38 @@ int main(int argc, char **argv) {
   cout << "-------------------------------------" << endl;
   debug(root);
 
+  return 0;
+}
+
+int smash(int x) { return 1; }
+
+vector<Folder> task(CanvasApi api, Course course) {
+  auto res = api.course_folders(&course.id);
+  auto tree = new FileTree(&course);
+  tree->insert_folders(res);
+  debug(tree);
+  return res;
+}
+
+int main(int argc, char **argv) {
+  CanvasApi *api = new CanvasApi();
+  vector<Course> courses = api->courses();
+
+  vector<thread> threads;
+
+  for (Course course : courses) {
+    thread t(task, *api, course);
+    cout << "kick" << course.id << " " << course.name << endl;
+    threads.push_back(std::move(t));
+  }
+
+  int size = threads.size();
+  for (int i = 0; i < size; i++) {
+    threads[i].join();
+  }
+
+  future<int> f = async(smash, 4);
+  cout << "waiting..." << endl;
+  cout << f.get() << endl;
   return 0;
 }
