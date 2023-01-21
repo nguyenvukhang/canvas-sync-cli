@@ -1,4 +1,4 @@
-#include "main.h"
+#include "errors.h"
 
 void panic(const char *err_msg) {
   std::cerr << "[error] " << err_msg << std::endl;

@@ -1,3 +1,4 @@
+#include "filetree.h"
 #include <gtest/gtest.h>
 
 // Demonstrate some basic assertions.

@@ -1,7 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include "main.h"
+#include "json.hpp"
+#include <iostream> // for std::cout and std::cerr in the .cc file
 
 using namespace std;
 using json = nlohmann::json;

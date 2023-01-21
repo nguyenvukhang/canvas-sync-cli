@@ -9,31 +9,34 @@ CANVAS_SYNC_PRG := $(MAKEFILE_DIR)/build/canvas_sync
 include ../../.env
 
 BIN=./build/canvas_sync
+TEST_BIN=./build/canvas_sync_tests
 
 develop:
 	@make --no-print-directory build
 	@make run_prg
-	# @make debug_prg
+	@make run_tests
 	@make save_config
 
-build:
+build: FORCE
+	# configure the build
 	@cmake -B $(MAKEFILE_DIR)/build -S $(MAKEFILE_DIR) $(CMAKE_FLAGS)
-	@cmake --build $(MAKEFILE_DIR)/build # run the build
+	# run the build
+	@cmake --build $(MAKEFILE_DIR)/build
 
 # save the build command for LSP use
 save_config:
 	@mv $(MAKEFILE_DIR)/build/compile_commands.json .
 
-# to include this, run `make build_rust` before the `cmake --build` command
-build_rust:
-	@cd embed && cargo build --release
-	@rm -f ./build/libembed*
-	@cp ./embed/target/release/libembed* ./build
-
+# run the main binary
 run_prg:
-	@CANVAS_TOKEN=$(CANVAS_TOKEN) BIN=$(BIN) sh ./scripts/debug
+	@CANVAS_TOKEN=$(CANVAS_TOKEN) sh ./scripts/no-fail $(BIN)
 
+# run the tests binary
+run_tests:
+	@cd $(MAKEFILE_DIR)/build && ctest
+
+# run the binary through the `lldb` debugger
 debug_prg:
 	@CANVAS_TOKEN=$(CANVAS_TOKEN) lldb $(BIN)
 
-.PHONY: build build_rust build_release build_debug
+FORCE: ;

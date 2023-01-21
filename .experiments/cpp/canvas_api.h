@@ -1,7 +1,11 @@
 #ifndef CANVAS_API_H
 #define CANVAS_API_H
 
-#include "main.h"
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+
+#include "httplib.h"
+#include "json.hpp"
+
 #include "types.h"
 
 using namespace std;

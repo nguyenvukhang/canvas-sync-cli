@@ -1,5 +1,4 @@
 #include "types.h"
-#include "main.h"
 
 void eprintln(const char *fmt, ...) {
   va_list args;

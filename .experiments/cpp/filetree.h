@@ -1,8 +1,8 @@
 #ifndef FILETREE_H
 #define FILETREE_H
 
-#include "main.h"
 #include "types.h"
+#include <vector> // for std::vector
 
 using namespace std;
 
