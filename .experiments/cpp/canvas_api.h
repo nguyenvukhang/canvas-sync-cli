@@ -1,7 +1,5 @@
 #include "httplib.h"
 
-#include <iostream>
-
 class CanvasApi {
 private:
   std::string token;

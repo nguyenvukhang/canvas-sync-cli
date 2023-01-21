@@ -1,5 +1,4 @@
-#include <cstdlib>
-#include <iostream>
+#include "main.h"
 
 void panic(const char *err_msg) {
   std::cerr << "[error] " << err_msg << std::endl;

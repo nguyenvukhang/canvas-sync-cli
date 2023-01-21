@@ -11,7 +11,7 @@ include ../../.env
 BIN=./build/canvas_sync
 
 develop:
-	@make build
+	@make --no-print-directory build
 	@make run_prg
 	# @make debug_prg
 	@make save_config
