@@ -1,10 +1,9 @@
-#define CPPHTTPLIB_OPENSSL_SUPPORT
-
+#include "main.h"
 #include "canvas_api.h"
 #include "errors.h"
-#include "httplib.h"
 
 using namespace httplib;
+using json = nlohmann::json;
 
 CanvasApi::CanvasApi() {
   char *token = std::getenv("CANVAS_TOKEN");
@@ -14,9 +13,13 @@ CanvasApi::CanvasApi() {
   this->token = token;
 }
 
-void CanvasApi::profile() {
+Profile CanvasApi::profile() {
   Result res = this->get("/api/v1/users/self/profile");
+  json j = json::parse(res->body);
+  Profile p = j.get<Profile>();
+  printf("id -> %s\n", p.student_id.c_str());
   std::cout << res->body << std::endl;
+  return p;
 }
 
 Result CanvasApi::get(const char *url) {

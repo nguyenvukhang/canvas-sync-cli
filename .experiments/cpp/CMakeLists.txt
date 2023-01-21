@@ -5,7 +5,12 @@ project(canvas_sync VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-add_executable(canvas_sync main.cpp errors.cpp canvas_api.cpp)
+add_executable(canvas_sync
+  main.cpp
+  errors.cpp
+  canvas_api.cpp
+  types.cpp)
+
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 target_link_libraries(canvas_sync /opt/homebrew/Cellar/openssl@3/3.0.7/lib/libssl.a)

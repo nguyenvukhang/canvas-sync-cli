@@ -1,4 +1,8 @@
+#ifndef CANVAS_API_H
+#define CANVAS_API_H
+
 #include "httplib.h"
+#include "types.h"
 
 class CanvasApi {
 private:
@@ -10,6 +14,8 @@ private:
 public:
   CanvasApi(); // use the $CANVAS_TOKEN environment variable
   CanvasApi(const char *token) { this->token = token; };
-  void profile();
+  Profile profile();
   void print_token() { std::cerr << this->token << std::endl; }
 };
+
+#endif

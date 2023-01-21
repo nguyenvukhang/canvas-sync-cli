@@ -1,3 +1,11 @@
+#ifndef MAIN_H
+#define MAIN_H
+
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+
+#include "httplib.h"
+#include "json.hpp"
+
 #include <future> // for std::async and std::future
 #include <iostream>
 
@@ -5,3 +13,5 @@
 #define canvas_sync_VERSION_MAJOR @canvas_sync_VERSION_MAJOR@
 #define canvas_sync_VERSION_MINOR @canvas_sync_VERSION_MINOR@
 // clang-format on
+
+#endif

@@ -1,7 +1,9 @@
 #include "main.h"
 #include "canvas_api.h"
 #include "errors.h"
-#include "rust.h"
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 struct Folder {
   int id;
