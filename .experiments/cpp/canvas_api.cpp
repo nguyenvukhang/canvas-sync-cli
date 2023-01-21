@@ -8,19 +8,16 @@
 #include <cstring>
 #include <iostream>
 
-CanvasApi::CanvasApi(const char *token) {
-  printf("copying token: %s\n", token);
-  int token_size = strlen(token);
-  this->token = "";
-  for (int i = 0; i < token_size; i++) {
-    this->token += token[i];
+CanvasApi::CanvasApi() {
+  char *token = std::getenv("CANVAS_TOKEN");
+  if (token == NULL) {
+    panic("$CANVAS_TOKEN environment variable not found");
   }
+  this->token = token;
 }
 
 void CanvasApi::profile() {
-  httplib::Client cli("https://canvas.nus.edu.sg");
-  cli.set_bearer_token_auth(this->token);
-  httplib::Result res = cli.Get("/api/v1/users/self/profile");
+  httplib::Result res = this->get("/api/v1/users/self/profile");
   std::cout << res->body << std::endl;
 }
 

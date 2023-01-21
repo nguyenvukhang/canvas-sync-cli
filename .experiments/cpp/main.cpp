@@ -38,9 +38,7 @@ void version(char *bin_name) {
 }
 
 int main(int argc, char **argv) {
-  // CanvasApi *api = new CanvasApi("HELLO");
-  CanvasApi *api = new CanvasApi(env_or_throw("CANVAS_TOKEN"));
+  CanvasApi *api = new CanvasApi();
   api->profile();
-  // api->print_token();
   return 0;
 }

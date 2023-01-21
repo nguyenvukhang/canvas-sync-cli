@@ -9,7 +9,8 @@ private:
   httplib::Client cli();
 
 public:
-  CanvasApi(const char *token);
+  CanvasApi(); // use the $CANVAS_TOKEN environment variable
+  CanvasApi(const char *token) { this->token = token; };
   void profile();
   void print_token() { std::cerr << this->token << std::endl; }
 };
