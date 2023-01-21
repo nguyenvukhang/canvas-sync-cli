@@ -1,6 +1,7 @@
 #include "main.h"
 #include "canvas_api.h"
 #include "errors.h"
+#include <vector>
 
 using json = nlohmann::json;
 
@@ -24,6 +25,9 @@ void version(char *bin_name) {
 int main(int argc, char **argv) {
   CanvasApi *api = new CanvasApi();
   Profile p = api->profile();
+  vector<Course> courses = api->courses();
+  for (Course c : courses)
+    debug(&c);
   debug(&p);
 
   return 0;

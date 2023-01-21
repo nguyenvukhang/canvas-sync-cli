@@ -22,10 +22,10 @@ public:
   int id;
   string name;
 };
-void to_json(json &j, const Course &c);
-void from_json(const json &j, Course &c);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Course, id, name);
 
 void debug();
 void debug(Profile *p);
+void debug(Course *c);
 
 #endif

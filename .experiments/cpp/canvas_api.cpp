@@ -1,6 +1,6 @@
-#include "main.h"
 #include "canvas_api.h"
 #include "errors.h"
+#include "main.h"
 
 using namespace httplib;
 using json = nlohmann::json;
@@ -24,9 +24,15 @@ Profile CanvasApi::profile() {
 vector<Course> CanvasApi::courses() {
   Result res = this->get("/api/v1/users/self/courses?per_page=118");
   json j = json::parse(res->body);
-  Profile p = j.get<Profile>();
-  std::cout << res->body << std::endl;
   vector<Course> courses;
+  for (json::iterator it = j.begin(); it != j.end(); ++it) {
+    try {
+      Course c = it->get<Course>();
+      courses.push_back(c);
+    } catch (json::exception) {
+      // simply don't parse invalid courses
+    }
+  }
   return courses;
 }
 

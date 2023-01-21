@@ -1,15 +1,6 @@
 #include "types.h"
 #include "main.h"
 
-void to_json(json &j, const Course &c) {
-  j = json{{"id", c.id}, {"name", c.name}};
-}
-
-void from_json(const json &j, Course &c) {
-  j.at("id").get_to(c.id);
-  j.at("name").get_to(c.name);
-}
-
 void eprintln(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -25,4 +16,9 @@ void debug(Profile *p) {
   eprintln("* email:      %s", p->primary_email.c_str());
   eprintln("* login_id:   %s", p->login_id.c_str());
   eprintln("* student_id: %s", p->integration_id.c_str());
+}
+void debug(Course *c) {
+  eprintln("Course");
+  eprintln("* id:         %d", c->id);
+  eprintln("* name:       %s", c->name.c_str());
 }
