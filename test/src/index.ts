@@ -73,8 +73,7 @@ class Api {
   }
 }
 
-export const api = new Api(
-  axios.create({
+export const api = new Api( axios.create({
     baseURL: BASE_URL,
     headers: { Authorization: `Bearer ${TOKEN}` },
   })

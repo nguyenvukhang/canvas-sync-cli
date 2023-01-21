@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+[ -z $BIN ] && echo 'Please specify a $BIN to run'
+[ ! -f $BIN ] && echo "$BIN does not exist"
+LINE='──────────────────────────────────────────────────────────'
+
+echo $LINE
+$BIN $@
+echo $LINE

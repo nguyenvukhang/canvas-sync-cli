@@ -4,7 +4,7 @@ BIN=./target/debug/canvas-sync
 main:
 	cargo build || exit 1
 	@echo "~~~~~~~~~~~~~~ FETCH ~~~~~~~~~~~~~~~~~~~"
-	@ RUST_LOG=canvas_sync=debug $(BIN) fetch
+	@ RUST_LOG=canvas_sync=debug $(BIN) experiment
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 null:

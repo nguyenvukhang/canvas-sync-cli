@@ -64,10 +64,18 @@ impl Api {
         self.json(&url).await
     }
 
-    /// Get the folders of a particular course id.
+    /// Get the folders of a particular course by id.
     pub async fn course_folders(&self, course_id: u32) -> Result<Value> {
         let url = format!(
             "https://canvas.nus.edu.sg/api/v1/courses/{course_id}/folders"
+        );
+        self.json(&url).await
+    }
+
+    /// Get the root files of a particular course by id.
+    pub async fn course_files(&self, course_id: u32) -> Result<Value> {
+        let url = format!(
+            "https://canvas.nus.edu.sg/api/v1/courses/{course_id}/files"
         );
         self.json(&url).await
     }

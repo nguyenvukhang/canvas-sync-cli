@@ -1,6 +1,7 @@
 mod api;
 mod config;
 mod error;
+mod experiment;
 mod string;
 mod sync;
 mod traits;
@@ -43,6 +44,7 @@ enum Commands {
     },
     Fetch,
     Pull,
+    Experiment,
 }
 
 #[derive(Debug)]
@@ -61,7 +63,7 @@ impl App {
     pub async fn run(&self) -> Result<()> {
         if self.args.version {
             println!("{BINARY_NAME} {}", VERSION.unwrap_or("unknown"));
-            return Ok(())
+            return Ok(());
         }
         let cfg_path = self.args.config_path.as_ref();
         let command = match &self.args.command {
@@ -77,6 +79,7 @@ impl App {
         };
         use Commands as C;
         match command {
+            C::Experiment => experiment::main().await,
             C::SetToken { token } => {
                 let mut config = Config::load(cfg_path, false)?;
                 config.set_token(token);
