@@ -1,7 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include "json.hpp"
+#include "main.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -10,12 +10,20 @@ class Profile {
 public:
   int id;
   string name;
-  string email;
+  string primary_email;
   string login_id;
-  string student_id;
+  string integration_id;
 };
-void to_json(json &j, const Profile &p);
-void from_json(const json &j, Profile &p);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Profile, id, name, login_id, integration_id,
+                                   primary_email);
+
+class Course {
+public:
+  int id;
+  string name;
+};
+void to_json(json &j, const Course &c);
+void from_json(const json &j, Course &c);
 
 void debug();
 void debug(Profile *p);

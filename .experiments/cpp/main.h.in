@@ -8,6 +8,7 @@
 
 #include <future> // for std::async and std::future
 #include <iostream>
+#include <vector>
 
 // clang-format off
 #define canvas_sync_VERSION_MAJOR @canvas_sync_VERSION_MAJOR@

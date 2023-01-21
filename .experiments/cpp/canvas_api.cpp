@@ -17,9 +17,17 @@ Profile CanvasApi::profile() {
   Result res = this->get("/api/v1/users/self/profile");
   json j = json::parse(res->body);
   Profile p = j.get<Profile>();
-  printf("id -> %s\n", p.student_id.c_str());
   std::cout << res->body << std::endl;
   return p;
+}
+
+vector<Course> CanvasApi::courses() {
+  Result res = this->get("/api/v1/users/self/courses?per_page=118");
+  json j = json::parse(res->body);
+  Profile p = j.get<Profile>();
+  std::cout << res->body << std::endl;
+  vector<Course> courses;
+  return courses;
 }
 
 Result CanvasApi::get(const char *url) {
