@@ -28,6 +28,7 @@ add_executable(canvas_sync
   errors.cc
   canvas_api.cc
   filetree.cc
+  httpjson.cc
   main.cc)
 
 # link the `./bulid` directory
@@ -48,6 +49,7 @@ configure_file(main.h.in main.h)
 enable_testing()
 add_executable(cs_test
   filetree.cc filetree_test.cc
+  canvas_api.cc canvas_api_test.cc
   types.cc)
 target_link_libraries(cs_test GTest::gtest_main GTest::gmock_main)
 include(GoogleTest)
