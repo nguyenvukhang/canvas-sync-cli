@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(canvas_sync VERSION 0.1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1) # to build compile_commands.json
 
 # include the `./include` directory for static downloads
@@ -40,7 +40,7 @@ set(OPENSSL_LIB ${OPENSSL_DIR}/lib/libssl.a ${OPENSSL_DIR}/lib/libcrypto.a)
 target_link_libraries(canvas_sync ${OPENSSL_LIB})
 target_include_directories(canvas_sync PRIVATE ${OPENSSL_DIR}/include)
 
-target_link_libraries(canvas_sync Async++)
+# target_link_libraries(canvas_sync Async++)
 
 # configure compile-time substitutions
 configure_file(main.h.in main.h)

@@ -1,5 +1,5 @@
-#ifndef HTTPCLIENT_H
-#define HTTPCLIENT_H
+#ifndef CANVAS_SYNC_HTTPCLIENT_H
+#define CANVAS_SYNC_HTTPCLIENT_H
 
 #include <string>
 

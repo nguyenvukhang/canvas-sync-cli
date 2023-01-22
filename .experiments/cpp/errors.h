@@ -1,5 +1,5 @@
-#ifndef ERRORS_H
-#define ERRORS_H
+#ifndef CANVAS_SYNC_ERRORS_H
+#define CANVAS_SYNC_ERRORS_H
 
 #include <iostream>
 

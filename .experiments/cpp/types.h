@@ -1,11 +1,22 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef CANVAS_SYNC_TYPES_H
+#define CANVAS_SYNC_TYPES_H
 
 #include "json.hpp"
 #include <iostream> // for std::cout and std::cerr in the .cc file
 
 using namespace std;
 using json = nlohmann::json;
+
+// extract all valid sub-json to form a vec. ignore invalids.
+template <typename T> vector<T> to_vec(json j) {
+  vector<T> v;
+  for (json::iterator it = j.begin(); it != j.end(); ++it)
+    try {
+      v.push_back(it->get<T>());
+    } catch (json::exception) {
+    }
+  return v;
+}
 
 class Profile {
 public:

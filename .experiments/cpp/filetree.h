@@ -1,5 +1,5 @@
-#ifndef FILETREE_H
-#define FILETREE_H
+#ifndef CANVAS_SYNC_FILETREE_H
+#define CANVAS_SYNC_FILETREE_H
 
 #include "types.h"
 #include <vector> // for std::vector
@@ -13,11 +13,15 @@ private:
   void to_string(string *);
 
 public:
+  FileTree() {
+    this->id = 0;
+    this->name = "root";
+  }
   FileTree(const int, const char *);
   FileTree(const int, const string);
   FileTree(Folder *);
   FileTree(Course *);
-  int id;
+  int id; // either course id or folder id.
   string name;
   vector<FileTree> folders;
   vector<File> files;

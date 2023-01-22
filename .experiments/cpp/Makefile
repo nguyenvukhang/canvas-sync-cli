@@ -13,7 +13,7 @@ TEST_BIN=./build/canvas_sync_tests
 
 develop:
 	@make --no-print-directory build
-	# @make run_prg
+	@make run_prg
 	@make run_tests
 	@make save_config
 

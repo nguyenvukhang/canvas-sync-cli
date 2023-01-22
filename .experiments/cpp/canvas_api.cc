@@ -1,6 +1,6 @@
 #include "canvas_api.h"
-#include "errors.h"
-#include "httpclient.h"
+#include "BS_thread_pool.hpp"
+#include "filetree.h"
 
 using json = nlohmann::json;
 
@@ -8,29 +8,14 @@ Profile CanvasApi::profile() {
   return this->get("/api/v1/users/self/profile").get<Profile>();
 }
 
-template <typename T> vector<T> to_vec(json j) {
-  vector<T> v;
-  for (json::iterator it = j.begin(); it != j.end(); ++it) {
-    try {
-      v.push_back(it->get<T>());
-    } catch (json::exception) {
-    }
-  }
-  return v;
-}
-
 vector<Course> CanvasApi::courses() {
   json j = this->get("/api/v1/users/self/courses?per_page=118");
-  // Simply don't parse invalid courses.
-  // These are very real and happen when lecturers/profs want to
-  // sandbox some modules and also happen to add you in them.
   return to_vec<Course>(j);
 }
 
 vector<File> CanvasApi::course_files(const int *course_id) {
-  string url = "/api/v1/courses/";
-  url += to_string(*course_id);
-  url += "/files?per_page=10000";
+  string url =
+      "/api/v1/courses/" + to_string(*course_id) + "/files?per_page=10000";
   json j = this->get(url.c_str());
   return to_vec<File>(j);
 }
@@ -42,15 +27,45 @@ vector<Folder> CanvasApi::course_folders(const int *course_id) {
   return to_vec<Folder>(j);
 }
 
-const char *CanvasApi::get_token_from_env() {
-  char *token = std::getenv("CANVAS_TOKEN");
-  if (token == NULL) {
-    std::cerr << "[error] $CANVAS_TOKEN environment variable not found"
-              << std::endl;
-  }
-  return token;
-}
+FileTree CanvasApi::courses_file_tree() {
+  vector<Course> courses = this->courses();
+  vector<future<FileTree>> futures;
+  BS::thread_pool pool(5);
 
-json CanvasApi::get(const char *url) {
-  return json::parse(this->cli->get(url));
-}
+  for (auto course = courses.begin(); course < courses.end(); course++) {
+    FileTree *tree = new FileTree(&*course);
+    future<FileTree> course_tree = pool.submit([tree, this] {
+      tree->insert_folders(this->course_folders(&tree->id));
+      return *tree;
+    });
+    futures.push_back(std::move(course_tree));
+  }
+
+  FileTree *root = new FileTree(0, "root");
+  for (auto fut = futures.begin(); fut < futures.end(); fut++) {
+    FileTree tree = fut->get();
+    root->insert_tree(&tree);
+  }
+
+  return *root;
+};
+
+void CanvasApi::courses_file_tree(FileTree *root) {
+  vector<Course> courses = this->courses();
+  vector<future<FileTree>> futures;
+  BS::thread_pool pool(5);
+
+  for (auto course = courses.begin(); course < courses.end(); course++) {
+    FileTree *tree = new FileTree(&*course);
+    future<FileTree> course_tree = pool.submit([tree, this] {
+      tree->insert_folders(this->course_folders(&tree->id));
+      return *tree;
+    });
+    futures.push_back(std::move(course_tree));
+  }
+
+  for (auto fut = futures.begin(); fut < futures.end(); fut++) {
+    FileTree tree = fut->get();
+    root->insert_tree(&tree);
+  }
+};
