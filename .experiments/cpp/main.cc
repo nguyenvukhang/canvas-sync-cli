@@ -4,6 +4,7 @@
 #include "filetree.h"
 #include "types.h"
 #include <algorithm>
+#include <async++.h>
 #include <future>
 #include <thread>
 
@@ -62,8 +63,5 @@ int main(int argc, char **argv) {
     threads[i].join();
   }
 
-  future<int> f = async(smash, 4);
-  cout << "waiting..." << endl;
-  cout << f.get() << endl;
   return 0;
 }
