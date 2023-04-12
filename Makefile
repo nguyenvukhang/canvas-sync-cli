@@ -1,18 +1,24 @@
 include .env
-BIN=./target/debug/canvas-sync
+BIN_DIR:=$(HOME)/dots/personal/.local/bin
+BIN:=canvas-sync
+
 
 main:
 	cargo build || exit 1
 	@echo "~~~~~~~~~~~~~~ FETCH ~~~~~~~~~~~~~~~~~~~"
-	@ RUST_LOG=canvas_sync=debug $(BIN) fetch
+	@ RUST_LOG=canvas_sync=debug ./target/debug/$(BIN) fetch
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-
-null:
-	cargo build || exit 1
-	@ $(BIN)
 
 quiet:
 	cargo build || exit 1
 	@echo "~~~~~~~~~~~~~~ FETCH ~~~~~~~~~~~~~~~~~~~"
-	@ $(BIN) fetch
+	@ ./target/debug/$(BIN) fetch
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+load_bin:
+	@rm -f $(BIN_DIR)/$(BIN)
+	@cp ./target/release/$(BIN) $(BIN_DIR)
+
+all:
+	cargo build --release
+	make load_bin

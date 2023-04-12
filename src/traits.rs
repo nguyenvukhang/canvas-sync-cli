@@ -73,7 +73,7 @@ impl EasyJson for Value {
     }
 
     fn to_normalized_filename(&self) -> Option<String> {
-        let filename = self["filename"].as_str()?;
+        let filename = self["display_name"].as_str()?;
         Some(normalize_filename(filename))
     }
 }

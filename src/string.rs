@@ -50,7 +50,7 @@ fn test_parse_url() -> Result<()> {
 /// Normalize filename by replacing '+' and '-' with '_', and then
 /// replacing all "__" with '_'
 pub fn normalize_filename(v: &str) -> String {
-    let mut v = v.replace("+", "_").replace(" ", "_").replace("-", "_");
+    let mut v = v.replace("+", "_").replace("-", "_");
     let mut len = v.len();
     loop {
         v = v.replace("__", "_");
